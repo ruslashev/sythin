@@ -1,59 +1,70 @@
 #include <cmath>
 #include <fstream>
-#include <iostream>
-using namespace std;
+#include <vector>
 
 template <typename T>
-std::ostream& write_word(std::ostream &stream, T value
-    , unsigned size = sizeof(T)) {
-  for (; size; --size, value >>= 8)
+void write_int(std::ostream &stream, T value) {
+  for (unsigned size = sizeof(T); size; --size, value >>= 8)
     stream.put(static_cast<char>(value & 0xFF));
-  return stream;
 }
 
 int main() {
-  ofstream f("out.wav", ios::binary);
+  std::ofstream f("out.wav", std::ios::binary);
 
-  // Write the file headers
-  f << "RIFF----WAVEfmt ";     // (chunk size to be filled in later)
-  write_word(f,     16, 4);  // no extension data
-  write_word(f,      1, 2);  // PCM - integer samples
-  write_word(f,      2, 2);  // two channels (stereo file)
-  write_word(f,  44100, 4);  // samples per second (Hz)
-  write_word(f, 176400, 4);  // (Sample Rate * BitsPerSample * Channels) / 8
-  write_word(f,      4, 2);  // data block size (size of two integer samples, one for each channel, in bytes)
-  write_word(f,     16, 2);  // number of bits per sample (use a multiple of 8)
+  // http://soundfile.sapp.org/doc/WaveFormat
+  // RIFF chunk
+  uint32_t riff_id = 0x46464952; // "RIFF"
+  uint32_t riff_size; // filled in later, 4 + (8 + SubChunk1Size) + (8 + SubChunk2Size)
+  uint32_t riff_format = 0x45564157; // "WAVE"
 
-  // Write the data chunk header
-  size_t data_chunk_pos = f.tellp();
-  f << "data----";  // (chunk size to be filled in later)
+  // fmt subchunk
+  uint32_t fmt_id = 0x20746d66; // "fmt "
+  uint32_t fmt_size = 16; // size of this 
+  uint16_t fmt_audio_format = 1; // no compression
+  uint16_t fmt_num_channels = 2;
+  uint32_t fmt_sample_rate = 44100;
+  uint16_t fmt_bits_per_sample = 16; // actually last in subchunk, reordered
+  uint32_t fmt_byte_rate = fmt_sample_rate * fmt_num_channels
+    * fmt_bits_per_sample / 8;
+  uint16_t fmt_block_align = fmt_num_channels * fmt_bits_per_sample / 8;
 
-  // Write the audio samples
-  // (We'll generate a single C4 note with a sine wave, fading from left to right)
-  constexpr double two_pi = 6.283185307179586476925286766559;
-  constexpr double max_amplitude = 32760;  // "volume"
+  // data subchunk
+  uint32_t data_id = 0x61746164; // "data"
+  uint32_t data_size; // num_samples * num_channels * bits_per_sample / 8
 
-  double hz        = 44100;    // samples per second
-  double frequency = 261.626;  // middle C
-  double seconds   = 2.5;      // time
-
-  int N = hz * seconds;  // total number of samples
-  for (int n = 0; n < N; n++) {
-    double amplitude = (double)n / N * max_amplitude;
-    double value     = sin((two_pi * n * frequency) / hz);
-    write_word(f, (int)(                 amplitude  * value), 2);
-    write_word(f, (int)((max_amplitude - amplitude) * value), 2);
+  double max_amplitude = 32768;
+  double hz = fmt_sample_rate;
+  double frequency = 261.626 /* C4 */, seconds = 2.5;
+  int num_samples = hz * seconds;  // total number of samples
+  std::vector<std::vector<uint16_t>> samples = { // 2 channels
+    std::vector<uint16_t>(num_samples), std::vector<uint16_t>(num_samples)
+  };
+  for (int n = 0; n < num_samples; n++) {
+    double amplitude = (double)n / num_samples * max_amplitude;
+    double value = sin((M_2_PI * n * frequency) / hz);
+    samples[0][n] = amplitude  * value;
+    samples[1][n] = (max_amplitude - amplitude) * value;
   }
 
-  // (We'll need the final file size to fix the chunk sizes above)
-  size_t file_length = f.tellp();
+  data_size = num_samples * fmt_num_channels * fmt_bits_per_sample / 8;
+  riff_size = 4 + 8 + fmt_size + 8 + data_size;
 
-  // Fix the data chunk header to contain the data size
-  f.seekp(data_chunk_pos + 4);
-  write_word(f, file_length - data_chunk_pos + 8);
-
-  // Fix the file header to contain the proper RIFF chunk size, which is (file size - 8) bytes
-  f.seekp(0 + 4);
-  write_word(f, file_length - 8, 4);
+  write_int(f, riff_id);
+  write_int(f, riff_size);
+  write_int(f, riff_format);
+  write_int(f, fmt_id);
+  write_int(f, fmt_size);
+  write_int(f, fmt_audio_format);
+  write_int(f, fmt_num_channels);
+  write_int(f, fmt_sample_rate);
+  write_int(f, fmt_byte_rate);
+  write_int(f, fmt_block_align);
+  write_int(f, fmt_bits_per_sample);
+  write_int(f, data_id);
+  write_int(f, data_size);
+  for (size_t i = 0; i < samples[0].size(); ++i) {
+    write_int(f, samples[0][i]);
+    write_int(f, samples[1][i]);
+  }
 }
 
