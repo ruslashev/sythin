@@ -26,10 +26,6 @@ $(BIN): $(OBJS)
 	@echo "Compiling $<"
 	@$(CXX) -MMD -MP -c -o $@ $< $(CXXFLAGS)
 
-.objs/%.o: src/%.cpp
-	@echo "Compiling $<"
-	@$(CXX) -MMD -MP -c -o $@ $< $(CXXFLAGS)
-
 gdb: $(BIN)
 	gdb $(BIN)
 
