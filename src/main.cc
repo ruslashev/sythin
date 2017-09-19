@@ -1,5 +1,11 @@
 #include <cmath>
 #include "wav_writer.hh"
+#include "lang.hh"
+
+#define src(X) #X
+const char *ex_src = src(
+  main f t = sin(2 * pi * f * t)
+);
 
 samples_t create_2chan_samples(uint64_t num_samples) {
   samples_t samples = {
@@ -9,7 +15,7 @@ samples_t create_2chan_samples(uint64_t num_samples) {
 }
 
 int main() {
-double max_amplitude = 32760;
+  double max_amplitude = 32760;
   double sample_rate = 44100;
   double frequency = 261.626 /* C4 */, seconds = 2.5;
   uint64_t num_samples = sample_rate * seconds;
