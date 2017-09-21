@@ -31,6 +31,10 @@ struct term_t {
   };
 };
 
+struct program_t {
+  std::vector<term_t> terms;
+};
+
 term_t term_function(std::string name, std::vector<std::string> args
     , term_t body) {
   term_t t;
@@ -61,5 +65,15 @@ term_t term_number(double value) {
   t.type = term_k::number;
   t.number.value = value;
   return t;
+}
+
+std::string term_type_to_string(const term_t &term) {
+  switch (term.type) {
+    case term_k::function:    return "function";
+    case term_k::application: return "application";
+    case term_k::variable:    return "variable";
+    case term_k::number:      return "number";
+    default:                  return "unhandled";
+  }
 }
 
