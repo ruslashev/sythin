@@ -3,29 +3,26 @@
 #include "lang.hh"
 #include "utils.hh"
 
-double evaluate(const term_t * const term, double f, double t) {
+double evaluate_term(const term_t *const term, scope_t *scope) {
   switch (term->type) {
     case term_k::number:
       return term->number.value;
       break;
     case term_k::variable:
-      if (*term->variable.name == "f")
-        return f;
-      if (*term->variable.name == "t")
-        return t;
-      if (*term->variable.name == "pi")
-        return M_PI;
+      double value;
+      if (scope->lookup(*term->variable.name, &value))
+        return value;
       die("unknown variable \"%s\"", term->variable.name->c_str());
       break;
     case term_k::application:
       if (*term->application.name == "sin") {
         assertf(term->application.parameters->size() == 1);
-        return sin(evaluate(&((*term->application.parameters)[0]), f, t));
+        return sin(evaluate_term(&((*term->application.parameters)[0]), scope));
       }
       if (*term->application.name == "mult") {
         double result = 1.;
         for (size_t i = 0; i < term->application.parameters->size(); ++i)
-          result *= evaluate(&((*term->application.parameters)[i]), f, t);
+          result *= evaluate_term(&((*term->application.parameters)[i]), scope);
         return result;
       }
       die("unknown function \"%s\"", term->application.name->c_str());
@@ -51,17 +48,27 @@ double evaluate_program(const program_t &program, double f, double t) {
     die("no main function");
   else if (main_functions > 1)
     die("%d main functions", main_functions);
+
+  scope_t scope;
+  std::map<std::string, double> constants {
+    { "pi", M_PI }
+  };
+  scope.stack.push_back(constants);
   for (const term_t &term : program.terms)
     if (*term.function.name != "main")
       continue;
-    else
-      return evaluate(term.function.body, f, t);
+    else {
+      std::map<std::string, double> main_parameter_values;
+      main_parameter_values[(*term.function.args)[0]] = f;
+      main_parameter_values[(*term.function.args)[1]] = t;
+      scope.stack.push_back(main_parameter_values);
+      return evaluate_term(term.function.body, &scope);
+    }
   die("things that shouldn't happen for 300");
 }
 
 int main() {
   // func f t = sin(mult(2, pi, f, t))
-  // func f t = sin (2 * pi * f * t)
   program_t program = { std::vector<term_t>{
     term_function("main", std::vector<std::string>{ "f", "t" },
       term_application("sin", std::vector<term_t>{

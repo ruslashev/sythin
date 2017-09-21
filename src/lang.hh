@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 enum class term_k {
   function,
@@ -33,6 +34,11 @@ struct term_t {
 
 struct program_t {
   std::vector<term_t> terms;
+};
+
+struct scope_t {
+  std::vector<std::map<std::string, double>> stack; // can't iterate std::stack
+  bool lookup(const std::string &variable, double *value);
 };
 
 term_t term_function(std::string name, std::vector<std::string> args

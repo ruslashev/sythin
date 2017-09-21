@@ -1,5 +1,19 @@
 #include "lang.hh"
 
+bool scope_t::lookup(const std::string &variable, double *value) {
+  // note that traversal is purposedfully in reverse order so that variables can
+  // be overriden in deeper scopes (like in all sane languages)
+  for (int i = stack.size() - 1; i >= 0; --i) {
+    const std::map<std::string, double> &variables = stack[i];
+    auto value_it = variables.find(variable);
+    if (value_it != variables.end()) {
+      *value = value_it->second;
+      return true;
+    }
+  }
+  return false;
+}
+
 term_t term_function(std::string name, std::vector<std::string> args
     , term_t body) {
   term_t t;
