@@ -17,39 +17,39 @@ double evaluate_term(const term_t *const term, const program_t &program
     case term_k::application:
       if (*term->application.name == "sin") {
         assertf(term->application.parameters->size() == 1);
-        return sin(evaluate_term(&((*term->application.parameters)[0]), program
+        return sin(evaluate_term((*term->application.parameters)[0], program
               , scope));
       }
       if (*term->application.name == "mult") {
         double result = 1.;
         for (size_t i = 0; i < term->application.parameters->size(); ++i)
-          result *= evaluate_term(&((*term->application.parameters)[i]), program
+          result *= evaluate_term((*term->application.parameters)[i], program
               , scope);
         return result;
       }
-      for (const term_t &function : program.terms) {
-        if (function.type != term_k::function)
+      for (const term_t *tl_term : program.terms) {
+        if (tl_term->type != term_k::function)
           continue;
-        if (*function.function.name != *term->application.name)
+        if (*tl_term->function.name != *term->application.name)
           continue;
         // it is guaranteed that function declarations are unique
-        if (function.function.args->size()
+        if (tl_term->function.args->size()
             != term->application.parameters->size())
           die("function application arguments mismatch: %s/%d =/= %s/%d"
-              , function.function.name->c_str()
-              , (int)function.function.args->size()
+              , tl_term->function.name->c_str()
+              , (int)tl_term->function.args->size()
               , term->application.name->c_str()
               , (int)term->application.parameters->size());
         std::map<std::string, double> function_scope;
-        for (size_t i = 0; i < function.function.args->size(); ++i) {
+        for (size_t i = 0; i < tl_term->function.args->size(); ++i) {
           // strict evaluation
-          const std::string &arg_name = (*function.function.args)[i];
+          const std::string &arg_name = (*tl_term->function.args)[i];
           double arg_value = evaluate_term(
-              &((*term->application.parameters)[i]), program, scope);
+              (*term->application.parameters)[i], program, scope);
           function_scope[arg_name] = arg_value;
         }
         scope->stack.push_back(function_scope);
-        double result = evaluate_term(function.function.body, program, scope);
+        double result = evaluate_term(tl_term->function.body, program, scope);
         scope->stack.pop_back();
         return result;
       }
@@ -64,7 +64,7 @@ double evaluate_program(const program_t &program, double f, double t) {
   std::vector<message_t> messages;
   program.validate_top_level_functions(&messages);
   for (const message_t &message : messages)
-    printf("%s: %s\n", message_kind_to_string(message.type)
+    printf("%s: %s\n", message_kind_to_string(message.type).c_str()
         , message.content.c_str());
   assertf(messages_contain_no_errors(messages));
 
@@ -73,14 +73,14 @@ double evaluate_program(const program_t &program, double f, double t) {
     { "pi", M_PI }
   };
   scope.stack.push_back(constants);
-  for (const term_t &term : program.terms) {
-    if (*term.function.name != "main")
+  for (const term_t *term : program.terms) {
+    if (*term->function.name != "main")
       continue;
     std::map<std::string, double> main_parameter_values;
-    main_parameter_values[(*term.function.args)[0]] = f;
-    main_parameter_values[(*term.function.args)[1]] = t;
+    main_parameter_values[(*term->function.args)[0]] = f;
+    main_parameter_values[(*term->function.args)[1]] = t;
     scope.stack.push_back(main_parameter_values);
-    return evaluate_term(term.function.body, program, &scope);
+    return evaluate_term(term->function.body, program, &scope);
   }
   die("things that shouldn't happen for 300");
 }
@@ -88,19 +88,19 @@ double evaluate_program(const program_t &program, double f, double t) {
 int main() {
   // double a = mult(2, a)
   // func f t = sin(mult(f, t, double(pi))
-  program_t program = { std::vector<term_t>{
+  program_t program = { std::vector<term_t*>{
     term_function("double", std::vector<std::string>{ "a" },
-      term_application("mult", std::vector<term_t>{
+      term_application("mult", std::vector<term_t*>{
         term_number(2),
         term_variable("a"),
       })
     ),
     term_function("main", std::vector<std::string>{ "f", "t" },
-      term_application("sin", std::vector<term_t>{
-        term_application("mult", std::vector<term_t>{
+      term_application("sin", std::vector<term_t*>{
+        term_application("mult", std::vector<term_t*>{
           term_variable("f"),
           term_variable("t"),
-          term_application("double", std::vector<term_t>{
+          term_application("double", std::vector<term_t*>{
             term_variable("pi")
           })
         })

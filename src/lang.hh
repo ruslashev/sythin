@@ -24,7 +24,7 @@ struct term_t {
     } function;
     struct {
       std::string *name;
-      std::vector<term_t> *parameters;
+      std::vector<term_t*> *parameters;
     } application;
     struct {
       std::string *name;
@@ -33,6 +33,7 @@ struct term_t {
       double value;
     } number;
   };
+  ~term_t();
 };
 
 enum class message_k {
@@ -50,7 +51,8 @@ struct message_t {
 bool messages_contain_no_errors(const std::vector<message_t> &messages);
 
 struct program_t {
-  std::vector<term_t> terms;
+  std::vector<term_t*> terms;
+  ~program_t();
   void validate_top_level_functions(std::vector<message_t> *messages) const;
 };
 
@@ -59,9 +61,10 @@ struct scope_t {
   bool lookup(const std::string &variable, double *value);
 };
 
-term_t term_function(std::string name, std::vector<std::string> args
-    , term_t body);
-term_t term_application(std::string name, std::vector<term_t> parameters);
-term_t term_variable(std::string name);
-term_t term_number(double value);
+term_t* term_function(const std::string &name, std::vector<std::string> args
+    , term_t *body);
+term_t* term_application(const std::string &name
+    , std::vector<term_t*> parameters);
+term_t* term_variable(const std::string &name);
+term_t* term_number(double value);
 
