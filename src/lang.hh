@@ -35,7 +35,7 @@ struct term_t {
   };
 };
 
-enum message_k {
+enum class message_k {
   warning,
   error
 };
@@ -47,9 +47,11 @@ struct message_t {
   std::string content;
 };
 
+bool messages_contain_no_errors(const std::vector<message_t> &messages);
+
 struct program_t {
   std::vector<term_t> terms;
-  bool validate_top_level_functions(std::vector<message_t> *messages) const;
+  void validate_top_level_functions(std::vector<message_t> *messages) const;
 };
 
 struct scope_t {

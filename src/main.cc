@@ -3,87 +3,114 @@
 #include "lang.hh"
 #include "utils.hh"
 
+// after every call to this function, `messages' should be checked for errors
 double evaluate_term(const term_t *const term, const program_t &program
-    , scope_t *scope) {
+    , scope_t *scope, std::vector<message_t> *messages) {
   switch (term->type) {
     case term_k::number:
       return term->number.value;
-      break;
     case term_k::variable:
       double value;
       if (scope->lookup(*term->variable.name, &value))
         return value;
-      die("unknown variable \"%s\"", term->variable.name->c_str());
+      messages->push_back({ message_k::error, "unknown variable \""
+          + *term->variable.name + "\"" });
+      return 0;
     case term_k::application:
       if (*term->application.name == "sin") {
-        assertf(term->application.parameters->size() == 1);
-        return sin(evaluate_term(&((*term->application.parameters)[0]), program
-              , scope));
+        if (term->application.parameters->size() != 1) {
+          messages->push_back({ message_k::error, "function \"sin\" takes 1 "
+              "argument, got "
+              + std::to_string(term->application.parameters->size()) });
+          return 0;
+        }
+        double parameter = evaluate_term(&((*term->application.parameters)[0])
+            , program, scope, messages);
+        if (!messages_contain_no_errors(*messages))
+          return 0;
+        return sin(parameter);
       }
       if (*term->application.name == "mult") {
         double result = 1.;
-        for (size_t i = 0; i < term->application.parameters->size(); ++i)
+        for (size_t i = 0; i < term->application.parameters->size(); ++i) {
           result *= evaluate_term(&((*term->application.parameters)[i]), program
-              , scope);
+              , scope, messages);
+          if (!messages_contain_no_errors(*messages))
+            return 0;
+        }
         return result;
       }
-      for (const term_t &function : program.terms) {
-        if (function.type != term_k::function)
+      for (const term_t &tl_term : program.terms) {
+        if (tl_term.type != term_k::function)
           continue;
-        if (*function.function.name != *term->application.name)
+        if (*tl_term.function.name != *term->application.name)
           continue;
         // it is guaranteed that function declarations are unique
-        if (function.function.args->size()
-            != term->application.parameters->size())
-          die("function application arguments mismatch: %s/%d =/= %s/%d"
-              , function.function.name->c_str()
-              , (int)function.function.args->size()
-              , term->application.name->c_str()
-              , (int)term->application.parameters->size());
+        if (tl_term.function.args->size()
+            != term->application.parameters->size()) {
+          messages->push_back({ message_k::error
+              , "function application arguments mismatch: "
+              + *tl_term.function.name + "/"
+              + std::to_string(tl_term.function.args->size()) + " =/= "
+              + *term->application.name
+              + std::to_string(term->application.parameters->size()) });
+          return 0;
+        }
         std::map<std::string, double> function_scope;
-        for (size_t i = 0; i < function.function.args->size(); ++i) {
+        for (size_t i = 0; i < tl_term.function.args->size(); ++i) {
           // strict evaluation
-          const std::string &arg_name = (*function.function.args)[i];
+          const std::string &arg_name = (*tl_term.function.args)[i];
           double arg_value = evaluate_term(
-              &((*term->application.parameters)[i]), program, scope);
+              &((*term->application.parameters)[i]), program, scope, messages);
+          if (!messages_contain_no_errors(*messages))
+            return 0;
           function_scope[arg_name] = arg_value;
         }
         scope->stack.push_back(function_scope);
-        double result = evaluate_term(function.function.body, program, scope);
+        double result = evaluate_term(tl_term.function.body, program, scope
+            , messages);
+        if (!messages_contain_no_errors(*messages))
+          return 0;
         scope->stack.pop_back();
         return result;
       }
-      die("unknown function \"%s\"", term->application.name->c_str());
-    case term_k::function:
-      die("wut");
+      messages->push_back({ message_k::error, "unknown function \""
+          + *term->application.name + "\"" });
+      return 0;
+    default:
+      messages->push_back({ message_k::error, "unexpected term type" });
+      return 0;
   }
-  return 0.; // shut up gcc
 }
 
 double evaluate_program(const program_t &program, double f, double t) {
   std::vector<message_t> messages;
-  bool valid = program.validate_top_level_functions(&messages);
+  program.validate_top_level_functions(&messages);
   for (const message_t &message : messages)
-    printf("%s: %s\n", message_kind_to_string(message.type)
+    printf("%s: %s\n", message_kind_to_string(message.type).c_str()
         , message.content.c_str());
-  assertf(valid);
+  if (!messages_contain_no_errors(messages))
+    exit(1);
 
+  double result;
+  messages.clear();
   scope_t scope;
   std::map<std::string, double> constants {
     { "pi", M_PI }
   };
   scope.stack.push_back(constants);
-  for (const term_t &term : program.terms)
+  for (const term_t &term : program.terms) {
     if (*term.function.name != "main")
       continue;
-    else {
-      std::map<std::string, double> main_parameter_values;
-      main_parameter_values[(*term.function.args)[0]] = f;
-      main_parameter_values[(*term.function.args)[1]] = t;
-      scope.stack.push_back(main_parameter_values);
-      return evaluate_term(term.function.body, program, &scope);
-    }
-  die("things that shouldn't happen for 300");
+    std::map<std::string, double> main_parameter_values;
+    main_parameter_values[(*term.function.args)[0]] = f;
+    main_parameter_values[(*term.function.args)[1]] = t;
+    scope.stack.push_back(main_parameter_values);
+    result = evaluate_term(term.function.body, program, &scope, &messages);
+  }
+
+  if (!messages_contain_no_errors(messages))
+    exit(1);
 }
 
 int main() {
