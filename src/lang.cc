@@ -1,5 +1,12 @@
 #include "lang.hh"
 
+bool messages_contain_no_errors(const std::vector<message_t> &messages) {
+  for (const message_t &message : messages)
+    if (message.type == message_k::error)
+      return false;
+  return true;
+}
+
 std::string term_kind_to_string(term_k kind) {
   switch (kind) {
     case term_k::function:    return "function";
@@ -18,9 +25,8 @@ std::string message_kind_to_string(message_k kind) {
   }
 }
 
-bool program_t::validate_top_level_functions(std::vector<message_t> *messages)
+void program_t::validate_top_level_functions(std::vector<message_t> *messages)
   const {
-  bool no_errors = true;
   std::map<std::string, int> function_occurence_counter;
   for (const term_t &term : terms) {
     if (term.type != term_k::function) {
@@ -30,7 +36,6 @@ bool program_t::validate_top_level_functions(std::vector<message_t> *messages)
       continue;
     }
     if (*term.function.name == "main" && term.function.args->size() != 2) {
-      no_errors = false;
       std::string message_content = "main function must take 2 arguments "
         "(frequency and time): expected 2, got "
         + std::to_string(term.function.args->size());
@@ -42,7 +47,6 @@ bool program_t::validate_top_level_functions(std::vector<message_t> *messages)
 
   for (auto &occ_pair : function_occurence_counter)
     if (occ_pair.second > 1) {
-      no_errors = false;
       std::string message_content = "duplicate function \"" + occ_pair.first
         + "\"";
       messages->push_back({ message_k::error, message_content });
@@ -50,12 +54,9 @@ bool program_t::validate_top_level_functions(std::vector<message_t> *messages)
 
   auto main_occ_it = function_occurence_counter.find("main");
   if (main_occ_it == function_occurence_counter.end()) {
-    no_errors = false;
     std::string message_content = "no main function";
     messages->push_back({ message_k::error, message_content });
   }
-
-  return no_errors;
 }
 
 bool scope_t::lookup(const std::string &variable, double *value) {

@@ -62,27 +62,26 @@ double evaluate_term(const term_t *const term, const program_t &program
 
 double evaluate_program(const program_t &program, double f, double t) {
   std::vector<message_t> messages;
-  bool valid = program.validate_top_level_functions(&messages);
+  program.validate_top_level_functions(&messages);
   for (const message_t &message : messages)
     printf("%s: %s\n", message_kind_to_string(message.type)
         , message.content.c_str());
-  assertf(valid);
+  assertf(messages_contain_no_errors(messages));
 
   scope_t scope;
   std::map<std::string, double> constants {
     { "pi", M_PI }
   };
   scope.stack.push_back(constants);
-  for (const term_t &term : program.terms)
+  for (const term_t &term : program.terms) {
     if (*term.function.name != "main")
       continue;
-    else {
-      std::map<std::string, double> main_parameter_values;
-      main_parameter_values[(*term.function.args)[0]] = f;
-      main_parameter_values[(*term.function.args)[1]] = t;
-      scope.stack.push_back(main_parameter_values);
-      return evaluate_term(term.function.body, program, &scope);
-    }
+    std::map<std::string, double> main_parameter_values;
+    main_parameter_values[(*term.function.args)[0]] = f;
+    main_parameter_values[(*term.function.args)[1]] = t;
+    scope.stack.push_back(main_parameter_values);
+    return evaluate_term(term.function.body, program, &scope);
+  }
   die("things that shouldn't happen for 300");
 }
 
