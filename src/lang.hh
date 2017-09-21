@@ -1,8 +1,9 @@
 #pragma once
 
+#include <deque>
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
 
 enum class term_k {
   function,
@@ -52,7 +53,7 @@ struct program_t {
 };
 
 struct scope_t {
-  std::vector<std::map<std::string, double>> stack; // can't iterate std::stack
+  std::deque<std::map<std::string, double>> stack; // can't iterate std::stack
   bool lookup(const std::string &variable, double *value);
 };
 
