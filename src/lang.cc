@@ -1,5 +1,45 @@
 #include "lang.hh"
 
+bool program_t::validate_top_level_functions(std::vector<message_t> *messages)
+  const {
+  bool no_errors = true;
+  std::map<std::string, int> function_occurence_counter;
+  for (const term_t &term : terms) {
+    if (term.type != term_k::function) {
+      std::string message_content = "top-level term of type <"
+        + term_type_to_string(term) + "> has no effect";
+      messages->push_back({ message_k::warning, message_content });
+      continue;
+    }
+    if (*term.function.name == "main" && term.function.args->size() != 2) {
+      no_errors = false;
+      std::string message_content = "main function must take 2 arguments "
+        "(frequency and time): expected 2, got "
+        + std::to_string(term.function.args->size());
+      messages->push_back({ message_k::error, message_content });
+    }
+    // remember that first call to operator[] initializes the counter with zero
+    ++function_occurence_counter[*term.function.name];
+  }
+
+  for (auto &occ_pair : function_occurence_counter)
+    if (occ_pair.second > 1) {
+      no_errors = false;
+      std::string message_content = "duplicate function \"" + occ_pair.first
+        + "\"";
+      messages->push_back({ message_k::error, message_content });
+    }
+
+  auto main_occ_it = function_occurence_counter.find("main");
+  if (main_occ_it == function_occurence_counter.end()) {
+    no_errors = false;
+    std::string message_content = "no main function";
+    messages->push_back({ message_k::error, message_content });
+  }
+
+  return no_errors;
+}
+
 bool scope_t::lookup(const std::string &variable, double *value) {
   // note that traversal is purposedfully in reverse order so that variables can
   // be overriden in deeper scopes (like in all sane languages)

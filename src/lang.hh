@@ -32,8 +32,19 @@ struct term_t {
   };
 };
 
+enum message_k {
+  warning,
+  error
+};
+
+struct message_t {
+  message_k type;
+  std::string content;
+};
+
 struct program_t {
   std::vector<term_t> terms;
+  bool validate_top_level_functions(std::vector<message_t> *messages) const;
 };
 
 struct scope_t {

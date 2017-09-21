@@ -34,20 +34,13 @@ double evaluate_term(const term_t *const term, scope_t *scope) {
 }
 
 double evaluate_program(const program_t &program, double f, double t) {
-  int main_functions = 0;
-  for (const term_t &term : program.terms)
-    if (term.type != term_k::function)
-      printf("warning: top-level term of type <%s> has no effect\n"
-          , term_type_to_string(term).c_str());
-    else if (*term.function.name == "main") {
-      ++main_functions;
-      if (term.function.args->size() != 2)
-        die("main function must take 2 arguments: frequency and time");
-    }
-  if (main_functions == 0)
-    die("no main function");
-  else if (main_functions > 1)
-    die("%d main functions", main_functions);
+  std::vector<message_t> messages;
+  bool valid = program.validate_top_level_functions(&messages);
+  for (const message_t &message : messages)
+    printf("%s: %s\n", message.type == message_k::warning ? "warning"
+        : message.type == message_k::error ? "error" : "message"
+        , message.content.c_str());
+  assertf(valid);
 
   scope_t scope;
   std::map<std::string, double> constants {
