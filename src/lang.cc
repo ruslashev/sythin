@@ -1,5 +1,23 @@
 #include "lang.hh"
 
+std::string term_kind_to_string(term_k kind) {
+  switch (kind) {
+    case term_k::function:    return "function";
+    case term_k::application: return "application";
+    case term_k::variable:    return "variable";
+    case term_k::number:      return "number";
+    default:                  return "unhandled";
+  }
+}
+
+std::string message_kind_to_string(message_k kind) {
+  switch (kind) {
+    case message_k::warning: return "warning";
+    case message_k::error:   return "error";
+    default:                 return "unhandled";
+  }
+}
+
 bool program_t::validate_top_level_functions(std::vector<message_t> *messages)
   const {
   bool no_errors = true;
@@ -7,7 +25,7 @@ bool program_t::validate_top_level_functions(std::vector<message_t> *messages)
   for (const term_t &term : terms) {
     if (term.type != term_k::function) {
       std::string message_content = "top-level term of type <"
-        + term_type_to_string(term) + "> has no effect";
+        + term_kind_to_string(term.type) + "> has no effect";
       messages->push_back({ message_k::warning, message_content });
       continue;
     }
@@ -84,15 +102,5 @@ term_t term_number(double value) {
   t.type = term_k::number;
   t.number.value = value;
   return t;
-}
-
-std::string term_type_to_string(const term_t &term) {
-  switch (term.type) {
-    case term_k::function:    return "function";
-    case term_k::application: return "application";
-    case term_k::variable:    return "variable";
-    case term_k::number:      return "number";
-    default:                  return "unhandled";
-  }
 }
 

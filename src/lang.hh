@@ -11,6 +11,8 @@ enum class term_k {
   number
 };
 
+std::string term_kind_to_string(term_k kind);
+
 struct term_t {
   term_k type;
   union {
@@ -37,6 +39,8 @@ enum message_k {
   error
 };
 
+std::string message_kind_to_string(message_k kind);
+
 struct message_t {
   message_k type;
   std::string content;
@@ -57,5 +61,4 @@ term_t term_function(std::string name, std::vector<std::string> args
 term_t term_application(std::string name, std::vector<term_t> parameters);
 term_t term_variable(std::string name);
 term_t term_number(double value);
-std::string term_type_to_string(const term_t &term);
 
