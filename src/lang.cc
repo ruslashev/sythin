@@ -4,7 +4,7 @@ std::string term_kind_to_string(term_k kind) {
   switch (kind) {
     case term_k::function:    return "function";
     case term_k::application: return "application";
-    case term_k::variable:    return "variable";
+    case term_k::identifier:  return "identifier";
     case term_k::number:      return "number";
     default:                  return "unhandled";
   }
@@ -23,8 +23,8 @@ term_t::~term_t() {
         delete parameter;
       delete application.parameters;
       break;
-    case term_k::variable:
-      delete variable.name;
+    case term_k::identifier:
+      delete identifier.name;
       break;
     default:
       break;
@@ -85,13 +85,13 @@ void program_t::validate_top_level_functions(std::vector<message_t> *messages)
   }
 }
 
-bool scope_t::lookup(const std::string &variable, double *value) {
+bool scope_t::lookup(const std::string &identifier, double *value) {
   // note that traversal is purposedfully in reverse order so that variables can
   // be overriden in deeper scopes (like in all sane languages)
   for (int i = stack.size() - 1; i >= 0; --i) {
-    const std::map<std::string, double> &variables = stack[i];
-    auto value_it = variables.find(variable);
-    if (value_it != variables.end()) {
+    const std::map<std::string, double> &identifiers = stack[i];
+    auto value_it = identifiers.find(identifier);
+    if (value_it != identifiers.end()) {
       *value = value_it->second;
       return true;
     }
@@ -117,10 +117,10 @@ term_t* term_application(const std::string &name, std::vector<term_t*> parameter
   return t;
 }
 
-term_t* term_variable(const std::string &name) {
+term_t* term_identifier(const std::string &name) {
   term_t *t = new term_t;
-  t->type = term_k::variable;
-  t->variable.name = new std::string(name);
+  t->type = term_k::identifier;
+  t->identifier.name = new std::string(name);
   return t;
 }
 

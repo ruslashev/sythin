@@ -8,7 +8,7 @@
 enum class term_k {
   function,
   application,
-  variable,
+  identifier,
   number
 };
 
@@ -28,7 +28,7 @@ struct term_t {
     } application;
     struct {
       std::string *name;
-    } variable;
+    } identifier;
     struct {
       double value;
     } number;
@@ -58,13 +58,13 @@ struct program_t {
 
 struct scope_t {
   std::deque<std::map<std::string, double>> stack; // can't iterate std::stack
-  bool lookup(const std::string &variable, double *value);
+  bool lookup(const std::string &identifier, double *value);
 };
 
 term_t* term_function(const std::string &name, std::vector<std::string> args
     , term_t *body);
 term_t* term_application(const std::string &name
     , std::vector<term_t*> parameters);
-term_t* term_variable(const std::string &name);
+term_t* term_identifier(const std::string &name);
 term_t* term_number(double value);
 

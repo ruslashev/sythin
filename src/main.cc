@@ -9,11 +9,11 @@ double evaluate_term(const term_t *const term, const program_t &program
     case term_k::number:
       return term->number.value;
       break;
-    case term_k::variable:
+    case term_k::identifier:
       double value;
-      if (scope->lookup(*term->variable.name, &value))
+      if (scope->lookup(*term->identifier.name, &value))
         return value;
-      die("unknown variable \"%s\"", term->variable.name->c_str());
+      die("unknown identifier \"%s\"", term->identifier.name->c_str());
     case term_k::application:
       if (*term->application.name == "sin") {
         assertf(term->application.parameters->size() == 1);
@@ -86,22 +86,23 @@ double evaluate_program(const program_t &program, double f, double t) {
 }
 
 int main() {
+  // double a = (λ x . mult(2) x) a
   // double a = mult(2, a)
   // func f t = sin(mult(f, t, double(pi))
   program_t program = { std::vector<term_t*>{
     term_function("double", std::vector<std::string>{ "a" },
       term_application("mult", std::vector<term_t*>{
         term_number(2),
-        term_variable("a"),
+        term_identifier("a"),
       })
     ),
     term_function("main", std::vector<std::string>{ "f", "t" },
       term_application("sin", std::vector<term_t*>{
         term_application("mult", std::vector<term_t*>{
-          term_variable("f"),
-          term_variable("t"),
+          term_identifier("f"),
+          term_identifier("t"),
           term_application("double", std::vector<term_t*>{
-            term_variable("pi")
+            term_identifier("pi")
           })
         })
       })
