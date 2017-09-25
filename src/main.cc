@@ -5,7 +5,7 @@
 
 double evaluate_term(const term_t *const term, const program_t &program
     , scope_t *scope) {
-  switch (term->type) {
+  switch (term->kind) {
     case term_k::constant:
       return term->constant.value;
       break;
@@ -28,7 +28,7 @@ double evaluate_term(const term_t *const term, const program_t &program
         return result;
       }
       for (const term_t *tl_term : program.terms) {
-        if (tl_term->type != term_k::function)
+        if (tl_term->kind != term_k::function)
           continue;
         if (*tl_term->function.name != *term->application.name)
           continue;
@@ -64,7 +64,7 @@ double evaluate_program(const program_t &program, double f, double t) {
   std::vector<message_t> messages;
   program.validate_top_level_functions(&messages);
   for (const message_t &message : messages)
-    printf("%s: %s\n", message_kind_to_string(message.type).c_str()
+    printf("%s: %s\n", message_kind_to_string(message.kind).c_str()
         , message.content.c_str());
   assertf(messages_contain_no_errors(messages));
 

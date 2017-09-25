@@ -11,7 +11,7 @@ std::string term_kind_to_string(term_k kind) {
 }
 
 term_t::~term_t() {
-  switch (type) {
+  switch (kind) {
     case term_k::function:
       delete function.name;
       delete function.args;
@@ -41,7 +41,7 @@ std::string message_kind_to_string(message_k kind) {
 
 bool messages_contain_no_errors(const std::vector<message_t> &messages) {
   for (const message_t &message : messages)
-    if (message.type == message_k::error)
+    if (message.kind == message_k::error)
       return false;
   return true;
 }
@@ -55,9 +55,9 @@ void program_t::validate_top_level_functions(std::vector<message_t> *messages)
   const {
   std::map<std::string, int> function_occurence_counter;
   for (const term_t *term : terms) {
-    if (term->type != term_k::function) {
+    if (term->kind != term_k::function) {
       std::string message_content = "top-level term of type <"
-        + term_kind_to_string(term->type) + "> has no effect";
+        + term_kind_to_string(term->kind) + "> has no effect";
       messages->push_back({ message_k::warning, message_content });
       continue;
     }
@@ -102,7 +102,7 @@ bool scope_t::lookup(const std::string &identifier, double *value) {
 term_t* term_function(const std::string &name, std::vector<std::string> args
     , term_t *body) {
   term_t *t = new term_t;
-  t->type = term_k::function;
+  t->kind = term_k::function;
   t->function.name = new std::string(name);
   t->function.args = new std::vector<std::string>(args);
   t->function.body = body;
@@ -111,7 +111,7 @@ term_t* term_function(const std::string &name, std::vector<std::string> args
 
 term_t* term_application(const std::string &name, std::vector<term_t*> parameters) {
   term_t *t = new term_t;
-  t->type = term_k::application;
+  t->kind = term_k::application;
   t->application.name = new std::string(name);
   t->application.parameters = new std::vector<term_t*>(parameters);
   return t;
@@ -119,14 +119,14 @@ term_t* term_application(const std::string &name, std::vector<term_t*> parameter
 
 term_t* term_identifier(const std::string &name) {
   term_t *t = new term_t;
-  t->type = term_k::identifier;
+  t->kind = term_k::identifier;
   t->identifier.name = new std::string(name);
   return t;
 }
 
 term_t* term_constant(double value) {
   term_t *t = new term_t;
-  t->type = term_k::constant;
+  t->kind = term_k::constant;
   t->constant.value = value;
   return t;
 }

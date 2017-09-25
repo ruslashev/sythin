@@ -15,7 +15,7 @@ enum class term_k {
 std::string term_kind_to_string(term_k kind);
 
 struct term_t {
-  term_k type;
+  term_k kind;
   union {
     struct {
       std::string *name;
@@ -44,7 +44,7 @@ enum class message_k {
 std::string message_kind_to_string(message_k kind);
 
 struct message_t {
-  message_k type;
+  message_k kind;
   std::string content;
 };
 
