@@ -7,19 +7,21 @@
 
 enum class type_k {
   number,
-  function
+  lambda
 };
-
-std::string type_kind_to_string(type_k kind);
 
 struct type_t {
   type_k kind;
   union {
     struct {
       type_t *takes, *returns;
-    } function;
+    } lambda;
   };
 };
+
+std::string type_to_string(const type_t *const type);
+
+// struct term_t;
 
 struct value_t {
   type_t type;
@@ -27,6 +29,10 @@ struct value_t {
     struct {
       double value;
     } number;
+    // struct {
+    //   std::string *arg;
+    //   term_t *body;
+    // } lambda;
   };
 };
 

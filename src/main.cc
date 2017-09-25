@@ -23,7 +23,7 @@ value_t evaluate_term(const term_t *const term, const program_t &program
             , program, scope);
         if (parameter.type.kind != type_k::number)
           die("sin: parameter 1: expected value of type <number>, got <%s>"
-              , type_kind_to_string(parameter.type.kind).c_str());
+              , type_to_string(&parameter.type).c_str());
         return value_number(sin(parameter.number.value));
       }
       if (*term->application.name == "mult") {
@@ -33,7 +33,7 @@ value_t evaluate_term(const term_t *const term, const program_t &program
               , program, scope);
           if (parameter.type.kind != type_k::number)
             die("mult: parameter %d: expected value of type <number>, got <%s>"
-                , (int)i + 1, type_kind_to_string(parameter.type.kind).c_str());
+                , (int)i + 1, type_to_string(&parameter.type).c_str());
           result *= parameter.number.value;
         }
         return value_number(result);
@@ -96,7 +96,7 @@ double evaluate_program(const program_t &program, double f, double t) {
   }
   if (program_result.type.kind != type_k::number)
     die("program returned value of type <%s>, expected <number>"
-        , type_kind_to_string(program_result.type.kind).c_str());
+        , type_to_string(&program_result.type).c_str());
   return program_result.number.value;
 }
 

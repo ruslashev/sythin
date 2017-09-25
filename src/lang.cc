@@ -1,10 +1,25 @@
 #include "lang.hh"
 
-std::string type_kind_to_string(type_k kind) {
-  switch (kind) {
-    case type_k::number:   return "number";
-    case type_k::function: return "function";
-    default:               return "unhandled";
+std::string type_to_string(const type_t *const type) {
+  switch (type->kind) {
+    case type_k::number:
+      return "number";
+    case type_k::lambda: {
+      std::string type_str = "", takes_str = type_to_string(type->lambda.takes)
+        , returns_str = type_to_string(type->lambda.returns);
+      if (type->lambda.takes->kind == type_k::lambda)
+        type_str += "(" + takes_str + ")";
+      else
+        type_str += takes_str;
+      type_str += " -> ";
+      if (type->lambda.returns->kind == type_k::lambda)
+        type_str += "(" + returns_str + ")";
+      else
+        type_str += returns_str;
+      return type_str;
+    }
+    default:
+      return "unhandled";
   }
 }
 
