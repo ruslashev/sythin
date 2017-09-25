@@ -6,8 +6,8 @@
 double evaluate_term(const term_t *const term, const program_t &program
     , scope_t *scope) {
   switch (term->type) {
-    case term_k::number:
-      return term->number.value;
+    case term_k::constant:
+      return term->constant.value;
       break;
     case term_k::identifier:
       double value;
@@ -92,7 +92,7 @@ int main() {
   program_t program = { std::vector<term_t*>{
     term_function("double", std::vector<std::string>{ "a" },
       term_application("mult", std::vector<term_t*>{
-        term_number(2),
+        term_constant(2),
         term_identifier("a"),
       })
     ),

@@ -9,7 +9,7 @@ enum class term_k {
   function,
   application,
   identifier,
-  number
+  constant
 };
 
 std::string term_kind_to_string(term_k kind);
@@ -31,7 +31,7 @@ struct term_t {
     } identifier;
     struct {
       double value;
-    } number;
+    } constant;
   };
   ~term_t();
 };
@@ -66,5 +66,5 @@ term_t* term_function(const std::string &name, std::vector<std::string> args
 term_t* term_application(const std::string &name
     , std::vector<term_t*> parameters);
 term_t* term_identifier(const std::string &name);
-term_t* term_number(double value);
+term_t* term_constant(double value);
 

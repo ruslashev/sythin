@@ -5,7 +5,7 @@ std::string term_kind_to_string(term_k kind) {
     case term_k::function:    return "function";
     case term_k::application: return "application";
     case term_k::identifier:  return "identifier";
-    case term_k::number:      return "number";
+    case term_k::constant:    return "constant";
     default:                  return "unhandled";
   }
 }
@@ -124,10 +124,10 @@ term_t* term_identifier(const std::string &name) {
   return t;
 }
 
-term_t* term_number(double value) {
+term_t* term_constant(double value) {
   term_t *t = new term_t;
-  t->type = term_k::number;
-  t->number.value = value;
+  t->type = term_k::constant;
+  t->constant.value = value;
   return t;
 }
 
