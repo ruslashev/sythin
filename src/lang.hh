@@ -5,6 +5,31 @@
 #include <string>
 #include <vector>
 
+enum class type_k {
+  number,
+  function
+};
+
+std::string type_kind_to_string(type_k kind);
+
+struct type_t {
+  type_k kind;
+  union {
+    struct {
+      type_t *takes, *returns;
+    } function;
+  };
+};
+
+struct value_t {
+  type_t type;
+  union {
+    struct {
+      double value;
+    } number;
+  };
+};
+
 enum class term_k {
   function,
   application,
@@ -30,7 +55,7 @@ struct term_t {
       std::string *name;
     } identifier;
     struct {
-      double value;
+      value_t value;
     } constant;
   };
   ~term_t();
@@ -57,14 +82,16 @@ struct program_t {
 };
 
 struct scope_t {
-  std::deque<std::map<std::string, double>> stack; // can't iterate std::stack
-  bool lookup(const std::string &identifier, double *value);
+  std::deque<std::map<std::string, value_t>> stack; // can't iterate std::stack
+  bool lookup(const std::string &identifier, value_t *value);
 };
+
+value_t value_number(double value);
 
 term_t* term_function(const std::string &name, std::vector<std::string> args
     , term_t *body);
 term_t* term_application(const std::string &name
     , std::vector<term_t*> parameters);
 term_t* term_identifier(const std::string &name);
-term_t* term_constant(double value);
+term_t* term_constant(value_t value);
 

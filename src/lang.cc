@@ -1,5 +1,13 @@
 #include "lang.hh"
 
+std::string type_kind_to_string(type_k kind) {
+  switch (kind) {
+    case type_k::number:   return "number";
+    case type_k::function: return "function";
+    default:               return "unhandled";
+  }
+}
+
 std::string term_kind_to_string(term_k kind) {
   switch (kind) {
     case term_k::function:    return "function";
@@ -85,11 +93,11 @@ void program_t::validate_top_level_functions(std::vector<message_t> *messages)
   }
 }
 
-bool scope_t::lookup(const std::string &identifier, double *value) {
+bool scope_t::lookup(const std::string &identifier, value_t *value) {
   // note that traversal is purposedfully in reverse order so that variables can
   // be overriden in deeper scopes (like in all sane languages)
   for (int i = stack.size() - 1; i >= 0; --i) {
-    const std::map<std::string, double> &identifiers = stack[i];
+    const std::map<std::string, value_t> &identifiers = stack[i];
     auto value_it = identifiers.find(identifier);
     if (value_it != identifiers.end()) {
       *value = value_it->second;
@@ -97,6 +105,13 @@ bool scope_t::lookup(const std::string &identifier, double *value) {
     }
   }
   return false;
+}
+
+value_t value_number(double number_value) {
+  value_t value;
+  value.type.kind = type_k::number;
+  value.number.value = number_value;
+  return value;
 }
 
 term_t* term_function(const std::string &name, std::vector<std::string> args
@@ -124,7 +139,7 @@ term_t* term_identifier(const std::string &name) {
   return t;
 }
 
-term_t* term_constant(double value) {
+term_t* term_constant(value_t value) {
   term_t *t = new term_t;
   t->kind = term_k::constant;
   t->constant.value = value;
