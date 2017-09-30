@@ -1,18 +1,22 @@
 #include "lang.hh"
 
 std::string type_to_string(const type_t *const type) {
+  if (type == nullptr)
+    return "(null)";
   switch (type->kind) {
     case type_k::number:
       return "number";
     case type_k::lambda: {
       std::string type_str = "", takes_str = type_to_string(type->lambda.takes)
         , returns_str = type_to_string(type->lambda.returns);
-      if (type->lambda.takes->kind == type_k::lambda)
+      if (type->lambda.takes != nullptr
+          && type->lambda.takes->kind == type_k::lambda)
         type_str += "(" + takes_str + ")";
       else
         type_str += takes_str;
       type_str += " -> ";
-      if (type->lambda.returns->kind == type_k::lambda)
+      if (type->lambda.returns != nullptr
+          && type->lambda.returns->kind == type_k::lambda)
         type_str += "(" + returns_str + ")";
       else
         type_str += returns_str;
@@ -37,14 +41,12 @@ term_t::~term_t() {
   switch (kind) {
     case term_k::function:
       delete function.name;
-      delete function.args;
+      delete function.arg;
       delete function.body;
       break;
     case term_k::application:
-      delete application.name;
-      for (const term_t *parameter : *application.parameters)
-        delete parameter;
-      delete application.parameters;
+      delete application.lambda;
+      delete application.parameter;
       break;
     case term_k::identifier:
       delete identifier.name;
@@ -84,12 +86,14 @@ void program_t::validate_top_level_functions(std::vector<message_t> *messages)
       messages->push_back({ message_k::warning, message_content });
       continue;
     }
-    if (*term->function.name == "main" && term->function.args->size() != 2) {
+    /*
+    if (*term->function.name == "main" && term->function.body. != 2) {
       std::string message_content = "main function must take 2 arguments "
         "(frequency and time): expected 2, got "
         + std::to_string(term->function.args->size());
       messages->push_back({ message_k::error, message_content });
     }
+    */
     // remember that first call to operator[] initializes the counter with zero
     ++function_occurence_counter[*term->function.name];
   }
@@ -129,21 +133,32 @@ value_t value_number(double number_value) {
   return value;
 }
 
-term_t* term_function(const std::string &name, std::vector<std::string> args
+value_t value_lambda(const std::string &arg, term_t *body) {
+  value_t value;
+  value.type.kind = type_k::lambda;
+  // value.type.lambda.* to be filled in
+  value.type.lambda.takes = nullptr;
+  value.type.lambda.returns = nullptr;
+  value.lambda.arg = new std::string(arg);
+  value.lambda.body = body;
+  return value;
+}
+
+term_t* term_function(const std::string &name, const std::string &arg
     , term_t *body) {
   term_t *t = new term_t;
   t->kind = term_k::function;
   t->function.name = new std::string(name);
-  t->function.args = new std::vector<std::string>(args);
+  t->function.arg = new std::string(arg);
   t->function.body = body;
   return t;
 }
 
-term_t* term_application(const std::string &name, std::vector<term_t*> parameters) {
+term_t* term_application(term_t *lambda, term_t *parameter) {
   term_t *t = new term_t;
   t->kind = term_k::application;
-  t->application.name = new std::string(name);
-  t->application.parameters = new std::vector<term_t*>(parameters);
+  t->application.lambda = lambda;
+  t->application.parameter = parameter;
   return t;
 }
 

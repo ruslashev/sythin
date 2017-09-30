@@ -21,7 +21,7 @@ struct type_t {
 
 std::string type_to_string(const type_t *const type);
 
-// struct term_t;
+struct term_t;
 
 struct value_t {
   type_t type;
@@ -29,10 +29,10 @@ struct value_t {
     struct {
       double value;
     } number;
-    // struct {
-    //   std::string *arg;
-    //   term_t *body;
-    // } lambda;
+    struct {
+      std::string *arg;
+      term_t *body;
+    } lambda;
   };
 };
 
@@ -50,19 +50,19 @@ struct term_t {
   union {
     struct {
       std::string *name;
-      std::vector<std::string> *args;
+      std::string *arg;
       term_t *body;
     } function;
     struct {
-      std::string *name;
-      std::vector<term_t*> *parameters;
+      term_t *lambda; // value (lambda) or identifier that aliases it
+      term_t *parameter;
     } application;
     struct {
       std::string *name;
     } identifier;
     struct {
       value_t value;
-    } constant;
+    } constant; // should be named just 'value'?
   };
   ~term_t();
 };
@@ -93,11 +93,11 @@ struct scope_t {
 };
 
 value_t value_number(double value);
+value_t value_lambda(const std::string &arg, term_t *body);
 
-term_t* term_function(const std::string &name, std::vector<std::string> args
+term_t* term_function(const std::string &name, const std::string &arg
     , term_t *body);
-term_t* term_application(const std::string &name
-    , std::vector<term_t*> parameters);
+term_t* term_application(term_t *lambda, term_t *parameter);
 term_t* term_identifier(const std::string &name);
 term_t* term_constant(value_t value);
 

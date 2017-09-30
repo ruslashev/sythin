@@ -101,26 +101,40 @@ double evaluate_program(const program_t &program, double f, double t) {
 }
 
 int main() {
-  // double a = (λ x . mult(2) x) a
   // double a = mult(2, a)
-  // func f t = sin(mult(f, t, double(pi))
+  // main f t = sin(mult(f, t, double(pi))
+
+  // double a = (mult 2) a
+  // main f = (λ t . (mult ((mult f) t)) (double pi))
   program_t program = { std::vector<term_t*>{
-    term_function("double", std::vector<std::string>{ "a" },
-      term_application("mult", std::vector<term_t*>{
-        term_constant(value_number(2)),
-        term_identifier("a"),
-      })
+    term_function("double", "a",
+      term_application(
+        term_application(
+          term_identifier("mult"),
+          term_constant(value_number(2))
+        ),
+        term_identifier("a")
+      )
     ),
-    term_function("main", std::vector<std::string>{ "f", "t" },
-      term_application("sin", std::vector<term_t*>{
-        term_application("mult", std::vector<term_t*>{
-          term_identifier("f"),
-          term_identifier("t"),
-          term_application("double", std::vector<term_t*>{
+    term_function("main", "f",
+      term_constant(value_lambda("t",
+        term_application(
+          term_application(
+            term_identifier("mult"),
+            term_application(
+              term_application(
+                term_identifier("mult"),
+                term_identifier("f")
+              ),
+              term_identifier("t")
+            )
+          ),
+          term_application(
+            term_identifier("double"),
             term_identifier("pi")
-          })
-        })
-      })
+          )
+        )
+      ))
     )
   }};
 
