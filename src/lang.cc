@@ -27,6 +27,17 @@ std::string type_to_string(const type_t *const type) {
   }
 }
 
+value_t::~value_t() {
+  switch (type.kind) {
+    case type_k::lambda:
+      delete lambda.arg;
+      delete lambda.body;
+      break;
+    default:
+      break;
+  }
+}
+
 void value_t::pretty_print() const {
   switch (type.kind) {
     case type_k::number:
@@ -67,6 +78,8 @@ term_t::~term_t() {
     case term_k::identifier:
       delete identifier.name;
       break;
+    case term_k::constant:
+      delete constant.value;
     default:
       break;
   }
@@ -89,7 +102,7 @@ void term_t::pretty_print() const {
       printf("%s", identifier.name->c_str());
       break;
     case term_k::constant:
-      constant.value.pretty_print();
+      constant.value->pretty_print();
     default:
       break;
   }
@@ -172,21 +185,21 @@ bool scope_t::lookup(const std::string &identifier, value_t *value) {
   return false;
 }
 
-value_t value_number(double number_value) {
-  value_t value;
-  value.type.kind = type_k::number;
-  value.number.value = number_value;
+value_t* value_number(double number_value) {
+  value_t* value = new value_t;
+  value->type.kind = type_k::number;
+  value->number.value = number_value;
   return value;
 }
 
-value_t value_lambda(const std::string &arg, term_t *body) {
-  value_t value;
-  value.type.kind = type_k::lambda;
-  // value.type.lambda.* to be filled in
-  value.type.lambda.takes = nullptr;
-  value.type.lambda.returns = nullptr;
-  value.lambda.arg = new std::string(arg);
-  value.lambda.body = body;
+value_t* value_lambda(const std::string &arg, term_t *body) {
+  value_t* value = new value_t;
+  value->type.kind = type_k::lambda;
+  // value->type.lambda.* to be filled in
+  value->type.lambda.takes = nullptr;
+  value->type.lambda.returns = nullptr;
+  value->lambda.arg = new std::string(arg);
+  value->lambda.body = body;
   return value;
 }
 
@@ -215,7 +228,7 @@ term_t* term_identifier(const std::string &name) {
   return t;
 }
 
-term_t* term_constant(value_t value) {
+term_t* term_constant(value_t *value) {
   term_t *t = new term_t;
   t->kind = term_k::constant;
   t->constant.value = value;

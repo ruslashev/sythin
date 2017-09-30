@@ -34,7 +34,7 @@ struct value_t {
       term_t *body;
     } lambda;
   };
-  // ~value_t() ?
+  ~value_t();
   void pretty_print() const;
 };
 
@@ -63,7 +63,7 @@ struct term_t {
       std::string *name;
     } identifier;
     struct {
-      value_t value;
+      value_t *value;
     } constant; // should be named just 'value'?
   };
   ~term_t();
@@ -96,12 +96,12 @@ struct scope_t {
   bool lookup(const std::string &identifier, value_t *value);
 };
 
-value_t value_number(double value);
-value_t value_lambda(const std::string &arg, term_t *body);
+value_t* value_number(double value);
+value_t* value_lambda(const std::string &arg, term_t *body);
 
 term_t* term_function(const std::string &name, const std::string &arg
     , term_t *body);
 term_t* term_application(term_t *lambda, term_t *parameter);
 term_t* term_identifier(const std::string &name);
-term_t* term_constant(value_t value);
+term_t* term_constant(value_t *value);
 

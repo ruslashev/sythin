@@ -3,12 +3,12 @@
 #include "lang.hh"
 #include "utils.hh"
 
+#if 0
 value_t evaluate_function(const term_t *const term, const program_t &program
     , scope_t *scope) {
   assertf(term->kind == term_k::function);
 }
 
-#if 0
 value_t evaluate_term(const term_t *const term, const program_t &program
     , scope_t *scope) {
   switch (term->kind) {
@@ -145,7 +145,6 @@ int main() {
     )
   }};
   program.pretty_print();
-  exit(0);
 
 #if 0
   samples_t samples = { std::vector<uint16_t>(), std::vector<uint16_t>() };
