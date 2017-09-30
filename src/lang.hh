@@ -34,6 +34,8 @@ struct value_t {
       term_t *body;
     } lambda;
   };
+  // ~value_t() ?
+  void pretty_print() const;
 };
 
 enum class term_k {
@@ -65,6 +67,7 @@ struct term_t {
     } constant; // should be named just 'value'?
   };
   ~term_t();
+  void pretty_print() const;
 };
 
 enum class message_k {
@@ -85,6 +88,7 @@ struct program_t {
   std::vector<term_t*> terms;
   ~program_t();
   void validate_top_level_functions(std::vector<message_t> *messages) const;
+  void pretty_print();
 };
 
 struct scope_t {

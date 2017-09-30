@@ -27,6 +27,22 @@ std::string type_to_string(const type_t *const type) {
   }
 }
 
+void value_t::pretty_print() const {
+  switch (type.kind) {
+    case type_k::number:
+      printf("%.1g", number.value);
+      break;
+    case type_k::lambda:
+      printf("(\\ %s . ", lambda.arg->c_str());
+      lambda.body->pretty_print();
+      printf(")");
+      break;
+    default:
+      printf("unhandled");
+      break;
+  }
+}
+
 std::string term_kind_to_string(term_k kind) {
   switch (kind) {
     case term_k::function:    return "function";
@@ -51,6 +67,29 @@ term_t::~term_t() {
     case term_k::identifier:
       delete identifier.name;
       break;
+    default:
+      break;
+  }
+}
+
+void term_t::pretty_print() const {
+  switch (kind) {
+    case term_k::function:
+      printf("%s %s = ", function.name->c_str(), function.arg->c_str());
+      function.body->pretty_print();
+      break;
+    case term_k::application:
+      printf("(");
+      application.lambda->pretty_print();
+      printf(" ");
+      application.parameter->pretty_print();
+      printf(")");
+      break;
+    case term_k::identifier:
+      printf("%s", identifier.name->c_str());
+      break;
+    case term_k::constant:
+      constant.value.pretty_print();
     default:
       break;
   }
@@ -109,6 +148,13 @@ void program_t::validate_top_level_functions(std::vector<message_t> *messages)
   if (main_occ_it == function_occurence_counter.end()) {
     std::string message_content = "no main function";
     messages->push_back({ message_k::error, message_content });
+  }
+}
+
+void program_t::pretty_print() {
+  for (const term_t *const term : terms) {
+    term->pretty_print();
+    printf("\n");
   }
 }
 

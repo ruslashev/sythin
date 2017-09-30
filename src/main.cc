@@ -3,6 +3,12 @@
 #include "lang.hh"
 #include "utils.hh"
 
+value_t evaluate_function(const term_t *const term, const program_t &program
+    , scope_t *scope) {
+  assertf(term->kind == term_k::function);
+}
+
+#if 0
 value_t evaluate_term(const term_t *const term, const program_t &program
     , scope_t *scope) {
   switch (term->kind) {
@@ -99,6 +105,7 @@ double evaluate_program(const program_t &program, double f, double t) {
         , type_to_string(&program_result.type).c_str());
   return program_result.number.value;
 }
+#endif
 
 int main() {
   // double a = mult(2, a)
@@ -137,7 +144,10 @@ int main() {
       ))
     )
   }};
+  program.pretty_print();
+  exit(0);
 
+#if 0
   samples_t samples = { std::vector<uint16_t>(), std::vector<uint16_t>() };
 
   double amplitude = 32760;
@@ -157,5 +167,6 @@ int main() {
   }
 
   write_wav("out.wav", sample_rate, samples);
+#endif
 }
 
