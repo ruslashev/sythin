@@ -6,7 +6,7 @@
 #include <vector>
 
 enum class type_k {
-  undef,
+  undef, // may be unneeded
   number,
   lambda
 };
@@ -41,29 +41,38 @@ struct value_t {
 };
 
 enum class term_k {
-  function, // should be called 'definition'
+  definition,
   application,
   identifier,
+  case_of,
   constant // should be called 'value'
 };
 
 std::string term_kind_to_string(term_k kind);
 
 struct term_t {
+  struct case_statement {
+    term_t *value; // can be null to mean "any"
+    term_t *result;
+  };
+
   term_k kind;
   union {
     struct {
       std::string *name;
-      std::string *arg; // should not have this
       term_t *body;
-    } function;
+    } definition;
     struct {
-      term_t *lambda; // value (lambda) or identifier that aliases it
+      term_t *lambda;
       term_t *parameter;
     } application;
     struct {
       std::string *name;
     } identifier;
+    struct {
+      term_t *value;
+      std::vector<case_statement> *statements;
+    } case_of;
     struct {
       value_t *value;
     } constant;
@@ -98,30 +107,13 @@ struct scope_t {
   bool lookup(const std::string &identifier, value_t *&value);
 };
 
-enum class computation_k {
-  multiplication,
-  sin
-};
-
-struct computation_t {
-  computation_k kind;
-  union {
-    struct {
-      double x;
-      double y;
-    } multiplication;
-    struct {
-      double x;
-    } sin;
-  };
-};
-
 value_t* value_number(double value);
 value_t* value_lambda(const std::string &arg, term_t *body);
 
-term_t* term_function(const std::string &name, const std::string &arg
-    , term_t *body);
+term_t* term_definition(const std::string &name, term_t *body);
 term_t* term_application(term_t *lambda, term_t *parameter);
 term_t* term_identifier(const std::string &name);
+term_t* term_case_of(term_t *value
+    , std::vector<term_t::case_statement> *statements);
 term_t* term_constant(value_t *value);
 

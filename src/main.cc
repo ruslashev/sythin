@@ -5,7 +5,7 @@
 
 value_t* evaluate_term(const term_t *const term, const program_t &program
     , scope_t *scope) {
-  printf("eval: < ");
+  printf("eval <%s>: < ", term_kind_to_string(term->kind).c_str());
   term->pretty_print();
   printf(" >\n");
   switch (term->kind) {
@@ -16,14 +16,6 @@ value_t* evaluate_term(const term_t *const term, const program_t &program
       value_t *value;
       if (scope->lookup(*term->identifier.name, value))
         return value;
-      // if (*term->identifier.name == "sin") {
-      //   puts("recognized sin");
-      //   break;
-      // }
-      // if (*term->identifier.name == "mult") {
-      //   puts("recognized mult");
-      //   break;
-      // }
       die("unknown identifier \"%s\"", term->identifier.name->c_str());
     case term_k::application:
       if (term->application.lambda->kind == term_k::identifier) {
@@ -36,9 +28,9 @@ value_t* evaluate_term(const term_t *const term, const program_t &program
           break;
         }
         for (const term_t *const tl_term : program.terms) {
-          if (tl_term->kind != term_k::function)
+          if (tl_term->kind != term_k::definition)
             continue;
-          if (*tl_term->function.name
+          if (*tl_term->definition.name
               != *term->application.lambda->identifier.name)
             continue;
           puts("found matching func");
@@ -117,31 +109,40 @@ double evaluate_program(const program_t &program, double f, double t) {
         , message.content.c_str());
   assertf(messages_contain_no_errors(messages));
 
-  value_t *program_result;
   scope_t scope;
   std::map<std::string, value_t*> constants {
     { "pi", value_number(M_PI) }
   };
   scope.stack.push_back(constants);
+  const term_t *main_def = nullptr;
   for (const term_t *term : program.terms) {
-    if (term->kind != term_k::function)
+    if (term->kind != term_k::definition)
       continue;
-    if (*term->function.name != "main")
+    if (*term->definition.name != "main")
       continue;
-    std::map<std::string, value_t*> main_parameter_value_freq;
-    main_parameter_value_freq[*term->function.arg] = value_number(f);
-    scope.stack.push_back(main_parameter_value_freq);
-
-    value_t *main_lambda = evaluate_term(term->function.body, program, &scope);
-    assertf(main_lambda->type.kind == type_k::lambda);
-
-    std::map<std::string, value_t*> main_parameter_value_time;
-    main_parameter_value_time[*main_lambda->lambda.arg] = value_number(t);
-    scope.stack.push_back(main_parameter_value_time);
-
-    program_result = evaluate_term(main_lambda->lambda.body, program, &scope);
+    main_def = term;
     break;
   }
+
+  term_t *main_lam = main_def->definition.body;
+  assertf(main_lam->kind == term_k::constant);
+  assertf(main_lam->constant.value->type.kind == type_k::lambda);
+  value_t *lam_freq = main_lam->constant.value;
+  std::map<std::string, value_t*> main_parameter_value_freq;
+  main_parameter_value_freq[*lam_freq->lambda.arg] = value_number(f);
+  scope.stack.push_back(main_parameter_value_freq);
+
+  term_t *lam_time_term = lam_freq->lambda.body;
+  assertf(lam_time_term->kind == term_k::constant);
+  assertf(lam_time_term->constant.value->type.kind == type_k::lambda);
+  value_t *lam_time = lam_time_term->constant.value;
+  std::map<std::string, value_t*> main_parameter_value_time;
+  main_parameter_value_time[*lam_time->lambda.arg] = value_number(t);
+  scope.stack.push_back(main_parameter_value_time);
+
+  term_t *main_body = lam_time->lambda.body;
+  value_t *program_result = evaluate_term(main_body, program, &scope);
+
   if (program_result->type.kind != type_k::number)
     die("program returned value of type <%s>, expected <number>"
         , type_to_string(&program_result->type).c_str());
@@ -149,45 +150,117 @@ double evaluate_program(const program_t &program, double f, double t) {
 }
 
 int main() {
-  // double a = mult(2, a)
-  // main f t = sin(mult(f, t, double(pi))
+  // add = (\x . (\y .
+  // case y of
+  //  0 -> x
+  //  _ -> (succ (add x (pred y)))
+  // ))
+
+  // mult = (\x . (\y .
+  // case y of
+  //  0 -> x
+  //  _ -> (add (mult x (pred y)) x)
+  // ))
 
   // double = (\ a . (mult 2) a )
-  // main = (\ f (λ t . (mult ((mult f) t)) (double pi)))
-
-  // double a = (mult 2) a
-  // main f = (λ t . (mult ((mult f) t)) (double pi))
+  // main = (\ f . (λ t . (mult ((mult f) t)) (double pi)))
   program_t program = { std::vector<term_t*>{
-    term_function("double", "a",
-      term_application(
-        term_application(
-          term_identifier("mult"),
-          term_constant(value_number(2))
-        ),
-        term_identifier("a")
-      )
+    term_definition("add",
+      term_constant(value_lambda("x",
+        term_constant(value_lambda("y",
+          term_case_of(
+            term_identifier("y"),
+            new std::vector<term_t::case_statement> {
+              { term_constant(value_number(0)), term_identifier("x") },
+              { nullptr,
+                term_application(
+                  term_identifier("succ"),
+                  term_application(
+                    term_application(
+                      term_identifier("add"),
+                      term_identifier("x")
+                    ),
+                    term_application(
+                      term_identifier("pred"),
+                      term_identifier("y")
+                    )
+                  )
+                )
+              }
+            }
+          )
+        ))
+      ))
     ),
-    term_function("main", "f",
-      term_constant(value_lambda("t",
+
+    term_definition("mult",
+      term_constant(value_lambda("x",
+        term_constant(value_lambda("y",
+          term_case_of(
+            term_identifier("y"),
+            new std::vector<term_t::case_statement> {
+              { term_constant(value_number(0)), term_identifier("x") },
+              { nullptr,
+                term_application(
+                  term_application(
+                    term_identifier("add"),
+                    term_application(
+                      term_application(
+                        term_identifier("add"),
+                        term_identifier("x")
+                      ),
+                      term_application(
+                        term_identifier("pred"),
+                        term_identifier("y")
+                      )
+                    )
+                  ),
+                  term_identifier("x")
+                )
+              }
+            }
+          )
+        ))
+      ))
+    ),
+
+    term_definition("double",
+      term_constant(value_lambda("a",
         term_application(
           term_application(
             term_identifier("mult"),
-            term_application(
-              term_application(
-                term_identifier("mult"),
-                term_identifier("f")
-              ),
-              term_identifier("t")
-            )
+            term_constant(value_number(2))
           ),
-          term_application(
-            term_identifier("double"),
-            term_identifier("pi")
-          )
+          term_identifier("a")
         )
+      ))
+    ),
+    term_definition("main",
+      term_constant(value_lambda("f",
+        term_constant(value_lambda("t",
+          term_application(
+            term_application(
+              term_identifier("mult"),
+              term_application(
+                term_application(
+                  term_identifier("mult"),
+                  term_identifier("f")
+                ),
+                term_identifier("t")
+              )
+            ),
+            term_application(
+              term_identifier("double"),
+              term_identifier("pi")
+            )
+          )
+        ))
       ))
     )
   }};
+
+  program.pretty_print();
+  return 0;
 
   samples_t samples = { std::vector<uint16_t>(), std::vector<uint16_t>() };
 

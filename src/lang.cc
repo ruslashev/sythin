@@ -45,10 +45,15 @@ value_t::~value_t() {
   }
 }
 
+static void print_indent(int level) {
+  for (int i = 0; i < level; ++i)
+    printf(" ");
+}
+
 void value_t::pretty_print() const {
   switch (type.kind) {
     case type_k::number:
-      printf("%.1g", number.value);
+      printf("%4.2f", number.value);
       break;
     case type_k::lambda:
       printf("(\\ %s . ", lambda.arg->c_str());
@@ -63,9 +68,10 @@ void value_t::pretty_print() const {
 
 std::string term_kind_to_string(term_k kind) {
   switch (kind) {
-    case term_k::function:    return "function";
+    case term_k::definition:  return "definition";
     case term_k::application: return "application";
     case term_k::identifier:  return "identifier";
+    case term_k::case_of:     return "case of";
     case term_k::constant:    return "constant";
     default:                  return "unhandled";
   }
@@ -73,10 +79,9 @@ std::string term_kind_to_string(term_k kind) {
 
 term_t::~term_t() {
   switch (kind) {
-    case term_k::function:
-      delete function.name;
-      delete function.arg;
-      delete function.body;
+    case term_k::definition:
+      delete definition.name;
+      delete definition.body;
       break;
     case term_k::application:
       delete application.lambda;
@@ -84,6 +89,14 @@ term_t::~term_t() {
       break;
     case term_k::identifier:
       delete identifier.name;
+      break;
+    case term_k::case_of:
+      delete case_of.value;
+      for (const case_statement &statement : *case_of.statements) {
+        delete statement.value;
+        delete statement.result;
+      }
+      delete case_of.statements;
       break;
     case term_k::constant:
       delete constant.value;
@@ -94,9 +107,9 @@ term_t::~term_t() {
 
 void term_t::pretty_print() const {
   switch (kind) {
-    case term_k::function:
-      printf("%s %s = ", function.name->c_str(), function.arg->c_str());
-      function.body->pretty_print();
+    case term_k::definition:
+      printf("%s = ", definition.name->c_str());
+      definition.body->pretty_print();
       break;
     case term_k::application:
       printf("(");
@@ -107,6 +120,21 @@ void term_t::pretty_print() const {
       break;
     case term_k::identifier:
       printf("%s", identifier.name->c_str());
+      break;
+    case term_k::case_of:
+      printf("case ");
+      case_of.value->pretty_print();
+      printf(" of\n");
+      for (const case_statement &statement : *case_of.statements) {
+        print_indent(1);
+        if (statement.value)
+          statement.value->pretty_print();
+        else
+          printf("_");
+        printf(" -> ");
+        statement.result->pretty_print();
+        printf("\n");
+      }
       break;
     case term_k::constant:
       constant.value->pretty_print();
@@ -139,7 +167,7 @@ void program_t::validate_top_level_functions(std::vector<message_t> *messages)
   const {
   std::map<std::string, int> function_occurence_counter;
   for (const term_t *term : terms) {
-    if (term->kind != term_k::function) {
+    if (term->kind != term_k::definition) {
       std::string message_content = "top-level term of type <"
         + term_kind_to_string(term->kind) + "> has no effect";
       messages->push_back({ message_k::warning, message_content });
@@ -154,7 +182,7 @@ void program_t::validate_top_level_functions(std::vector<message_t> *messages)
     }
     */
     // remember that first call to operator[] initializes the counter with zero
-    ++function_occurence_counter[*term->function.name];
+    ++function_occurence_counter[*term->definition.name];
   }
 
   for (auto &occ_pair : function_occurence_counter)
@@ -210,13 +238,11 @@ value_t* value_lambda(const std::string &arg, term_t *body) {
   return value;
 }
 
-term_t* term_function(const std::string &name, const std::string &arg
-    , term_t *body) {
+term_t* term_definition(const std::string &name, term_t *body) {
   term_t *t = new term_t;
-  t->kind = term_k::function;
-  t->function.name = new std::string(name);
-  t->function.arg = new std::string(arg);
-  t->function.body = body;
+  t->kind = term_k::definition;
+  t->definition.name = new std::string(name);
+  t->definition.body = body;
   return t;
 }
 
@@ -232,6 +258,15 @@ term_t* term_identifier(const std::string &name) {
   term_t *t = new term_t;
   t->kind = term_k::identifier;
   t->identifier.name = new std::string(name);
+  return t;
+}
+
+term_t* term_case_of(term_t *value
+    , std::vector<term_t::case_statement> *statements) {
+  term_t *t = new term_t;
+  t->kind = term_k::case_of;
+  t->case_of.value = value;
+  t->case_of.statements = statements;
   return t;
 }
 
