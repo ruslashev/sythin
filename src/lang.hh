@@ -6,6 +6,7 @@
 #include <vector>
 
 enum class type_k {
+  undef,
   number,
   lambda
 };
@@ -34,15 +35,16 @@ struct value_t {
       term_t *body;
     } lambda;
   };
+  value_t();
   ~value_t();
   void pretty_print() const;
 };
 
 enum class term_k {
-  function,
+  function, // should be called 'definition'
   application,
   identifier,
-  constant
+  constant // should be called 'value'
 };
 
 std::string term_kind_to_string(term_k kind);
@@ -52,7 +54,7 @@ struct term_t {
   union {
     struct {
       std::string *name;
-      std::string *arg;
+      std::string *arg; // should not have this
       term_t *body;
     } function;
     struct {
@@ -64,7 +66,7 @@ struct term_t {
     } identifier;
     struct {
       value_t *value;
-    } constant; // should be named just 'value'?
+    } constant;
   };
   ~term_t();
   void pretty_print() const;
@@ -92,8 +94,26 @@ struct program_t {
 };
 
 struct scope_t {
-  std::deque<std::map<std::string, value_t>> stack; // can't iterate std::stack
-  bool lookup(const std::string &identifier, value_t *value);
+  std::deque<std::map<std::string, value_t*>> stack; // can't iterate std::stack
+  bool lookup(const std::string &identifier, value_t *&value);
+};
+
+enum class computation_k {
+  multiplication,
+  sin
+};
+
+struct computation_t {
+  computation_k kind;
+  union {
+    struct {
+      double x;
+      double y;
+    } multiplication;
+    struct {
+      double x;
+    } sin;
+  };
 };
 
 value_t* value_number(double value);

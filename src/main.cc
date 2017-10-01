@@ -3,24 +3,54 @@
 #include "lang.hh"
 #include "utils.hh"
 
-#if 0
-value_t evaluate_function(const term_t *const term, const program_t &program
+value_t* evaluate_term(const term_t *const term, const program_t &program
     , scope_t *scope) {
-  assertf(term->kind == term_k::function);
-}
-
-value_t evaluate_term(const term_t *const term, const program_t &program
-    , scope_t *scope) {
+  printf("eval: < ");
+  term->pretty_print();
+  printf(" >\n");
   switch (term->kind) {
     case term_k::constant:
       return term->constant.value;
       break;
     case term_k::identifier:
-      value_t value;
-      if (scope->lookup(*term->identifier.name, &value))
+      value_t *value;
+      if (scope->lookup(*term->identifier.name, value))
         return value;
+      // if (*term->identifier.name == "sin") {
+      //   puts("recognized sin");
+      //   break;
+      // }
+      // if (*term->identifier.name == "mult") {
+      //   puts("recognized mult");
+      //   break;
+      // }
       die("unknown identifier \"%s\"", term->identifier.name->c_str());
     case term_k::application:
+      if (term->application.lambda->kind == term_k::identifier) {
+        if (*term->application.lambda->identifier.name == "sin") {
+          puts("sin");
+          break;
+        }
+        if (*term->application.lambda->identifier.name == "mult") {
+          puts("multt");
+          break;
+        }
+        for (const term_t *const tl_term : program.terms) {
+          if (tl_term->kind != term_k::function)
+            continue;
+          if (*tl_term->function.name
+              != *term->application.lambda->identifier.name)
+            continue;
+          puts("found matching func");
+        }
+        break;
+        die("unknown function identifier \"%s\""
+            , term->application.lambda->identifier.name->c_str());
+      } else if (term->application.lambda->kind == term_k::application) {
+        evaluate_term(term->application.lambda, program, scope);
+      } else
+        puts("whet");
+      /*
       if (*term->application.name == "sin") {
         if (term->application.parameters->size() != 1)
           die("sin: arity mismatch: expected sin/1, got sin/%d"
@@ -71,6 +101,9 @@ value_t evaluate_term(const term_t *const term, const program_t &program
         return result;
       }
       die("unknown function \"%s\"", term->application.name->c_str());
+      */
+      return new value_t;
+      break;
     default:
       die("unexpected term kind <%s>", term_kind_to_string(term->kind).c_str());
   }
@@ -84,32 +117,43 @@ double evaluate_program(const program_t &program, double f, double t) {
         , message.content.c_str());
   assertf(messages_contain_no_errors(messages));
 
-  value_t program_result;
+  value_t *program_result;
   scope_t scope;
-  std::map<std::string, value_t> constants {
+  std::map<std::string, value_t*> constants {
     { "pi", value_number(M_PI) }
   };
   scope.stack.push_back(constants);
   for (const term_t *term : program.terms) {
+    if (term->kind != term_k::function)
+      continue;
     if (*term->function.name != "main")
       continue;
-    std::map<std::string, value_t> main_parameter_values;
-    main_parameter_values[(*term->function.args)[0]] = value_number(f);
-    main_parameter_values[(*term->function.args)[1]] = value_number(t);
-    scope.stack.push_back(main_parameter_values);
-    program_result = evaluate_term(term->function.body, program, &scope);
+    std::map<std::string, value_t*> main_parameter_value_freq;
+    main_parameter_value_freq[*term->function.arg] = value_number(f);
+    scope.stack.push_back(main_parameter_value_freq);
+
+    value_t *main_lambda = evaluate_term(term->function.body, program, &scope);
+    assertf(main_lambda->type.kind == type_k::lambda);
+
+    std::map<std::string, value_t*> main_parameter_value_time;
+    main_parameter_value_time[*main_lambda->lambda.arg] = value_number(t);
+    scope.stack.push_back(main_parameter_value_time);
+
+    program_result = evaluate_term(main_lambda->lambda.body, program, &scope);
     break;
   }
-  if (program_result.type.kind != type_k::number)
+  if (program_result->type.kind != type_k::number)
     die("program returned value of type <%s>, expected <number>"
-        , type_to_string(&program_result.type).c_str());
-  return program_result.number.value;
+        , type_to_string(&program_result->type).c_str());
+  return program_result->number.value;
 }
-#endif
 
 int main() {
   // double a = mult(2, a)
   // main f t = sin(mult(f, t, double(pi))
+
+  // double = (\ a . (mult 2) a )
+  // main = (\ f (λ t . (mult ((mult f) t)) (double pi)))
 
   // double a = (mult 2) a
   // main f = (λ t . (mult ((mult f) t)) (double pi))
@@ -144,9 +188,7 @@ int main() {
       ))
     )
   }};
-  program.pretty_print();
 
-#if 0
   samples_t samples = { std::vector<uint16_t>(), std::vector<uint16_t>() };
 
   double amplitude = 32760;
@@ -166,6 +208,5 @@ int main() {
   }
 
   write_wav("out.wav", sample_rate, samples);
-#endif
 }
 

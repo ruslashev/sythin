@@ -4,10 +4,13 @@ std::string type_to_string(const type_t *const type) {
   if (type == nullptr)
     return "(null)";
   switch (type->kind) {
+    case type_k::undef:
+      return "undef";
     case type_k::number:
       return "number";
     case type_k::lambda: {
-      std::string type_str = "", takes_str = type_to_string(type->lambda.takes)
+      std::string type_str = "lambda: "
+        , takes_str = type_to_string(type->lambda.takes)
         , returns_str = type_to_string(type->lambda.returns);
       if (type->lambda.takes != nullptr
           && type->lambda.takes->kind == type_k::lambda)
@@ -25,6 +28,10 @@ std::string type_to_string(const type_t *const type) {
     default:
       return "unhandled";
   }
+}
+
+value_t::value_t() {
+  type.kind = type_k::undef;
 }
 
 value_t::~value_t() {
@@ -171,14 +178,14 @@ void program_t::pretty_print() {
   }
 }
 
-bool scope_t::lookup(const std::string &identifier, value_t *value) {
+bool scope_t::lookup(const std::string &identifier, value_t *&value) {
   // note that traversal is purposedfully in reverse order so that variables can
   // be overriden in deeper scopes (like in all sane languages)
   for (int i = stack.size() - 1; i >= 0; --i) {
-    const std::map<std::string, value_t> &identifiers = stack[i];
+    const std::map<std::string, value_t*> &identifiers = stack[i];
     auto value_it = identifiers.find(identifier);
     if (value_it != identifiers.end()) {
-      *value = value_it->second;
+      value = value_it->second;
       return true;
     }
   }
