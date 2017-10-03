@@ -9,6 +9,7 @@ value_t* evaluate_term(const term_t *const term, const program_t &program
 value_t* evaluate_application(const term_t *const term, const program_t &program
     , scope_t *scope) {
   printf("app of type <%s>\n", term_kind_to_string(term->application.lambda->kind).c_str());
+  value_t *lambda = nullptr;
   if (term->application.lambda->kind == term_k::identifier) {
     if (*term->application.lambda->identifier.name == "pred") {
       die("pred");
@@ -26,29 +27,28 @@ value_t* evaluate_application(const term_t *const term, const program_t &program
       die("unknown function identifier \"%s\""
           , term->application.lambda->identifier.name->c_str());
 
-    value_t *definition_body = evaluate_term(definition->definition.body
-        , program, scope);
-    switch (definition_body->type.kind) {
-      case type_k::number:
-        puts("numm");
-        return definition_body;
-      case type_k::lambda: {
-        puts("lamm");
-        value_t *parameter_value
-          = evaluate_term(term->application.parameter, program, scope);
-        std::map<std::string, value_t*> application_parameter;
-        application_parameter[*definition_body->lambda.arg] = parameter_value;
-        scope->stack.push_back(application_parameter);
-        value_t *result = evaluate_term(definition_body->lambda.body
-            , program, scope);
-        scope->stack.pop_back();
-        return result;
-      }
-      default:
-        die("don't");
+    lambda = evaluate_term(definition->definition.body, program, scope);
+  } else if (term->application.lambda->kind == term_k::application)
+    lambda = evaluate_term(term->application.lambda, program, scope);
+
+  assertf(lambda != nullptr);
+
+  switch (lambda->type.kind) {
+    case type_k::number:
+      return lambda;
+    case type_k::lambda: {
+      value_t *parameter
+        = evaluate_term(term->application.parameter, program, scope);
+      std::map<std::string, value_t*> application_parameter;
+      application_parameter[*lambda->lambda.arg] = parameter;
+      scope->stack.push_back(application_parameter);
+      value_t *result = evaluate_term(lambda->lambda.body
+          , program, scope);
+      scope->stack.pop_back();
+      return result;
     }
-  } else if (term->application.lambda->kind == term_k::application) {
-    return evaluate_term(term->application.lambda, program, scope);
+    default:
+      die("op");
   }
   die("dude");
 }
@@ -67,6 +67,31 @@ value_t* evaluate_term(const term_t *const term, const program_t &program
       if (scope->lookup(*term->identifier.name, value))
         return value;
       die("unknown identifier \"%s\"", term->identifier.name->c_str());
+    case term_k::case_of: {
+      value_t *value = evaluate_term(term->case_of.value, program, scope);
+      if (value->type.kind != type_k::number)
+        die("anything but numbers are not supported in case statements yet");
+      term_t *result = nullptr;
+      for (const term_t::case_statement &statement : *term->case_of.statements)
+        if (statement.value == nullptr) {
+          result = statement.result;
+          break;
+        } else {
+          value_t *statement_value = evaluate_term(statement.value, program, scope);
+          if (statement_value->type.kind != type_k::number)
+            die("anything but numbers are not supported in case statements yet");
+          long long int value_i = std::round(value->number.value)
+            , statement_value_i = std::round(statement_value->number.value);
+          if (value_i == statement_value_i) {
+            result = statement.result;
+            break;
+          }
+        }
+      if (result == nullptr)
+        die("no matching clause in case statement");
+      return evaluate_term(result, program, scope);
+      break;
+    }
     case term_k::application:
       return evaluate_application(term, program, scope);
     default:
