@@ -4,6 +4,56 @@
 #include "utils.hh"
 
 value_t* evaluate_term(const term_t *const term, const program_t &program
+    , scope_t *scope);
+
+value_t* evaluate_application(const term_t *const term, const program_t &program
+    , scope_t *scope) {
+  printf("app of type <%s>\n", term_kind_to_string(term->application.lambda->kind).c_str());
+  if (term->application.lambda->kind == term_k::identifier) {
+    if (*term->application.lambda->identifier.name == "pred") {
+      die("pred");
+    }
+    const term_t *definition = nullptr;
+    for (const term_t *const tl_term : program.terms) {
+      if (tl_term->kind != term_k::definition)
+        continue;
+      if (*tl_term->definition.name
+          != *term->application.lambda->identifier.name)
+        continue;
+      definition = tl_term;
+    }
+    if (!definition)
+      die("unknown function identifier \"%s\""
+          , term->application.lambda->identifier.name->c_str());
+
+    value_t *definition_body = evaluate_term(definition->definition.body
+        , program, scope);
+    switch (definition_body->type.kind) {
+      case type_k::number:
+        puts("numm");
+        return definition_body;
+      case type_k::lambda: {
+        puts("lamm");
+        value_t *parameter_value
+          = evaluate_term(term->application.parameter, program, scope);
+        std::map<std::string, value_t*> application_parameter;
+        application_parameter[*definition_body->lambda.arg] = parameter_value;
+        scope->stack.push_back(application_parameter);
+        value_t *result = evaluate_term(definition_body->lambda.body
+            , program, scope);
+        scope->stack.pop_back();
+        return result;
+      }
+      default:
+        die("don't");
+    }
+  } else if (term->application.lambda->kind == term_k::application) {
+    return evaluate_term(term->application.lambda, program, scope);
+  }
+  die("dude");
+}
+
+value_t* evaluate_term(const term_t *const term, const program_t &program
     , scope_t *scope) {
   printf("eval <%s>: < ", term_kind_to_string(term->kind).c_str());
   term->pretty_print();
@@ -18,102 +68,13 @@ value_t* evaluate_term(const term_t *const term, const program_t &program
         return value;
       die("unknown identifier \"%s\"", term->identifier.name->c_str());
     case term_k::application:
-      if (term->application.lambda->kind == term_k::identifier) {
-        if (*term->application.lambda->identifier.name == "sin") {
-          puts("sin");
-          break;
-        }
-        if (*term->application.lambda->identifier.name == "mult") {
-          puts("multt");
-          break;
-        }
-        for (const term_t *const tl_term : program.terms) {
-          if (tl_term->kind != term_k::definition)
-            continue;
-          if (*tl_term->definition.name
-              != *term->application.lambda->identifier.name)
-            continue;
-          puts("found matching func");
-        }
-        break;
-        die("unknown function identifier \"%s\""
-            , term->application.lambda->identifier.name->c_str());
-      } else if (term->application.lambda->kind == term_k::application) {
-        evaluate_term(term->application.lambda, program, scope);
-      } else
-        puts("whet");
-      /*
-      if (*term->application.name == "sin") {
-        if (term->application.parameters->size() != 1)
-          die("sin: arity mismatch: expected sin/1, got sin/%d"
-              , (int)term->application.parameters->size());
-        value_t parameter = evaluate_term((*term->application.parameters)[0]
-            , program, scope);
-        if (parameter.type.kind != type_k::number)
-          die("sin: parameter 1: expected value of type <number>, got <%s>"
-              , type_to_string(&parameter.type).c_str());
-        return value_number(sin(parameter.number.value));
-      }
-      if (*term->application.name == "mult") {
-        double result = 1.;
-        for (size_t i = 0; i < term->application.parameters->size(); ++i) {
-          value_t parameter = evaluate_term((*term->application.parameters)[i]
-              , program, scope);
-          if (parameter.type.kind != type_k::number)
-            die("mult: parameter %d: expected value of type <number>, got <%s>"
-                , (int)i + 1, type_to_string(&parameter.type).c_str());
-          result *= parameter.number.value;
-        }
-        return value_number(result);
-      }
-      for (const term_t *tl_term : program.terms) {
-        if (tl_term->kind != term_k::function)
-          continue;
-        if (*tl_term->function.name != *term->application.name)
-          continue;
-        // it is guaranteed that function declarations are unique
-        if (tl_term->function.args->size()
-            != term->application.parameters->size())
-          die("function application arguments mismatch: %s/%d =/= %s/%d"
-              , tl_term->function.name->c_str()
-              , (int)tl_term->function.args->size()
-              , term->application.name->c_str()
-              , (int)term->application.parameters->size());
-        std::map<std::string, value_t> function_scope;
-        for (size_t i = 0; i < tl_term->function.args->size(); ++i) {
-          // strict evaluation
-          const std::string &arg_name = (*tl_term->function.args)[i];
-          value_t arg_value = evaluate_term(
-              (*term->application.parameters)[i], program, scope);
-          function_scope[arg_name] = arg_value;
-        }
-        scope->stack.push_back(function_scope);
-        value_t result = evaluate_term(tl_term->function.body, program, scope);
-        scope->stack.pop_back();
-        return result;
-      }
-      die("unknown function \"%s\"", term->application.name->c_str());
-      */
-      return new value_t;
-      break;
+      return evaluate_application(term, program, scope);
     default:
       die("unexpected term kind <%s>", term_kind_to_string(term->kind).c_str());
   }
 }
 
 double evaluate_program(const program_t &program, double f, double t) {
-  std::vector<message_t> messages;
-  program.validate_top_level_functions(&messages);
-  for (const message_t &message : messages)
-    printf("%s: %s\n", message_kind_to_string(message.kind).c_str()
-        , message.content.c_str());
-  assertf(messages_contain_no_errors(messages));
-
-  scope_t scope;
-  std::map<std::string, value_t*> constants {
-    { "pi", value_number(M_PI) }
-  };
-  scope.stack.push_back(constants);
   const term_t *main_def = nullptr;
   for (const term_t *term : program.terms) {
     if (term->kind != term_k::definition)
@@ -123,6 +84,12 @@ double evaluate_program(const program_t &program, double f, double t) {
     main_def = term;
     break;
   }
+
+  scope_t scope;
+  std::map<std::string, value_t*> constants {
+    { "pi", value_number(M_PI) }
+  };
+  scope.stack.push_back(constants);
 
   term_t *main_lam = main_def->definition.body;
   assertf(main_lam->kind == term_k::constant);
@@ -155,13 +122,11 @@ int main() {
   //  0 -> x
   //  _ -> (succ (add x (pred y)))
   // ))
-
   // mult = (\x . (\y .
   // case y of
   //  0 -> x
   //  _ -> (add (mult x (pred y)) x)
   // ))
-
   // double = (\ a . (mult 2) a )
   // main = (\ f . (λ t . (mult ((mult f) t)) (double pi)))
   program_t program = { std::vector<term_t*>{
@@ -258,9 +223,16 @@ int main() {
       ))
     )
   }};
-
+  puts("program:");
   program.pretty_print();
-  return 0;
+  puts("");
+
+  std::vector<message_t> messages;
+  program.validate_top_level_functions(&messages);
+  for (const message_t &message : messages)
+    printf("%s: %s\n", message_kind_to_string(message.kind).c_str()
+        , message.content.c_str());
+  assertf(messages_contain_no_errors(messages));
 
   samples_t samples = { std::vector<uint16_t>(), std::vector<uint16_t>() };
 

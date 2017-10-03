@@ -124,16 +124,15 @@ void term_t::pretty_print() const {
     case term_k::case_of:
       printf("case ");
       case_of.value->pretty_print();
-      printf(" of\n");
+      printf(" of ");
       for (const case_statement &statement : *case_of.statements) {
-        print_indent(1);
         if (statement.value)
           statement.value->pretty_print();
         else
           printf("_");
         printf(" -> ");
         statement.result->pretty_print();
-        printf("\n");
+        printf("; ");
       }
       break;
     case term_k::constant:
