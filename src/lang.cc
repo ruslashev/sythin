@@ -103,6 +103,26 @@ term_t::~term_t() {
     default:
       break;
   }
+  if (scope != nullptr) {
+    for (const auto &scope_pair : *scope)
+      delete scope_pair.second;
+    delete scope;
+  }
+}
+
+bool term_t::lookup(const std::string &identifier, value_t *&value) const {
+  const term_t *it = this;
+  while (it != nullptr) {
+    if (it->scope != nullptr) {
+      auto value_it = it->scope->find(identifier);
+      if (value_it != it->scope->end()) {
+        value = value_it->second;
+        return true;
+      }
+    }
+    it = it->parent;
+  }
+  return false;
 }
 
 void term_t::pretty_print() const {
@@ -205,20 +225,6 @@ void program_t::pretty_print() {
   }
 }
 
-bool scope_t::lookup(const std::string &identifier, value_t *&value) {
-  // note that traversal is purposedfully in reverse order so that variables can
-  // be overriden in deeper scopes (like in all sane languages)
-  for (int i = stack.size() - 1; i >= 0; --i) {
-    const std::map<std::string, value_t*> &identifiers = stack[i];
-    auto value_it = identifiers.find(identifier);
-    if (value_it != identifiers.end()) {
-      value = value_it->second;
-      return true;
-    }
-  }
-  return false;
-}
-
 value_t* value_number(double number_value) {
   value_t* value = new value_t;
   value->type.kind = type_k::number;
@@ -242,6 +248,9 @@ term_t* term_definition(const std::string &name, term_t *body) {
   t->kind = term_k::definition;
   t->definition.name = new std::string(name);
   t->definition.body = body;
+  t->definition.body->parent = t;
+  t->parent = nullptr;
+  t->scope = nullptr;
   return t;
 }
 
@@ -250,6 +259,10 @@ term_t* term_application(term_t *lambda, term_t *parameter) {
   t->kind = term_k::application;
   t->application.lambda = lambda;
   t->application.parameter = parameter;
+  t->application.lambda->parent = t;
+  t->application.parameter->parent = t;
+  t->parent = nullptr;
+  t->scope = nullptr;
   return t;
 }
 
@@ -257,6 +270,8 @@ term_t* term_identifier(const std::string &name) {
   term_t *t = new term_t;
   t->kind = term_k::identifier;
   t->identifier.name = new std::string(name);
+  t->parent = nullptr;
+  t->scope = nullptr;
   return t;
 }
 
@@ -265,7 +280,15 @@ term_t* term_case_of(term_t *value
   term_t *t = new term_t;
   t->kind = term_k::case_of;
   t->case_of.value = value;
+  t->case_of.value->parent = t;
   t->case_of.statements = statements;
+  for (const term_t::case_statement &statement : *t->case_of.statements) {
+    if (statement.value)
+      statement.value->parent = t;
+    statement.result->parent = t;
+  }
+  t->parent = nullptr;
+  t->scope = nullptr;
   return t;
 }
 
@@ -273,6 +296,10 @@ term_t* term_constant(value_t *value) {
   term_t *t = new term_t;
   t->kind = term_k::constant;
   t->constant.value = value;
+  if (value->type.kind == type_k::lambda)
+    t->constant.value->lambda.body->parent = t;
+  t->parent = nullptr;
+  t->scope = nullptr;
   return t;
 }
 

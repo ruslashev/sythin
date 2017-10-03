@@ -1,6 +1,5 @@
 #pragma once
 
-#include <deque>
 #include <map>
 #include <string>
 #include <vector>
@@ -50,6 +49,8 @@ enum class term_k {
 
 std::string term_kind_to_string(term_k kind);
 
+typedef std::map<std::string, value_t*> scope_t;
+
 struct term_t {
   struct case_statement {
     term_t *value; // can be null to mean "any"
@@ -77,7 +78,12 @@ struct term_t {
       value_t *value;
     } constant;
   };
+
+  term_t *parent;
+  scope_t *scope; // should be vector (or not?)
+
   ~term_t();
+  bool lookup(const std::string &identifier, value_t *&value) const;
   void pretty_print() const;
 };
 
@@ -100,11 +106,6 @@ struct program_t {
   ~program_t();
   void validate_top_level_functions(std::vector<message_t> *messages) const;
   void pretty_print();
-};
-
-struct scope_t {
-  std::deque<std::map<std::string, value_t*>> stack; // can't iterate std::stack
-  bool lookup(const std::string &identifier, value_t *&value);
 };
 
 value_t* value_number(double value);
