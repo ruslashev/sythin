@@ -24,9 +24,18 @@ std::string type_to_string(const type_t *const type) {
       else
         type_str += returns_str;
       return type_str;
-    }
+    } case type_k::builtin:
+      return "builtin";
     default:
       return "unhandled";
+  }
+}
+
+std::string buitin_kind_to_string(builtin_k kind) {
+  switch (kind) {
+    case builtin_k::mult: return "mult";
+    case builtin_k::sin:  return "sin";
+    default:              return "unhandled";
   }
 }
 
@@ -225,21 +234,41 @@ void program_t::pretty_print() {
   }
 }
 
+builtin_t* builtin_mult(term_t *x) {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::mult;
+  b->mult.x = x;
+  return b;
+}
+
+builtin_t* builtin_sin() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::sin;
+  return b;
+}
+
 value_t* value_number(double number_value) {
-  value_t* value = new value_t;
+  value_t *value = new value_t;
   value->type.kind = type_k::number;
   value->number.value = number_value;
   return value;
 }
 
 value_t* value_lambda(const std::string &arg, term_t *body) {
-  value_t* value = new value_t;
+  value_t *value = new value_t;
   value->type.kind = type_k::lambda;
   // value->type.lambda.* to be filled in
   value->type.lambda.takes = nullptr;
   value->type.lambda.returns = nullptr;
   value->lambda.arg = new std::string(arg);
   value->lambda.body = body;
+  return value;
+}
+
+value_t* value_builtin(builtin_t *builtin) {
+  value_t *value = new value_t;
+  value->type.kind = type_k::builtin;
+  value->builtin.builtin = builtin; // :thinking:
   return value;
 }
 

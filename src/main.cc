@@ -5,58 +5,59 @@
 
 value_t* evaluate_term(const term_t *const term, const program_t &program);
 
+value_t* evaluate_builtin(value_t *const lambda, value_t *const parameter
+    , const program_t &program) {
+  switch (lambda->builtin.builtin->kind) {
+    case builtin_k::mult:
+      if (lambda->builtin.builtin->mult.x == nullptr) {
+        if (parameter->type.kind != type_k::number)
+          die("builtin mult/1: unexpected parameter of type <%s>, "
+              "expected <number>", type_to_string(&parameter->type).c_str());
+        lambda->builtin.builtin->mult.x = term_constant(parameter);
+        return lambda;
+      } else {
+        value_t *parameter_x = evaluate_term(lambda->builtin.builtin->mult.x
+            , program);
+        if (parameter->type.kind != type_k::number)
+          die("builtin mult/1: applied to value of type <%s>, "
+              "expected <number>", type_to_string(&parameter->type).c_str());
+        return value_number(parameter_x->number.value
+            * parameter->number.value);
+      }
+    case builtin_k::sin:
+      if (parameter->type.kind != type_k::number)
+        die("builtin sin/1: unexpected parameter of type <%s>, "
+            "expected <number>" , type_to_string(&parameter->type).c_str());
+      return value_number(sin(parameter->number.value));
+    default:
+      die("unexpected builtin kind");
+  }
+}
+
 value_t* evaluate_application(const term_t *const term
     , const program_t &program) {
   value_t *lambda = nullptr
     , *parameter = evaluate_term(term->application.parameter, program);
-  if (term->application.lambda->kind == term_k::identifier) {
-    if (*term->application.lambda->identifier.name == "pred") {
-      if (parameter->type.kind != type_k::number)
-        die("pred/1: expected argument of type <number>, got <%s>"
-            , type_to_string(&parameter->type).c_str());
-      --parameter->number.value;
-      return parameter;
-    } else if (*term->application.lambda->identifier.name == "succ") {
-      if (parameter->type.kind != type_k::number)
-        die("succ/1: expected argument of type <number>, got <%s>"
-            , type_to_string(&parameter->type).c_str());
-      ++parameter->number.value;
-      return parameter;
-    } else if (*term->application.lambda->identifier.name == "sin") {
-      if (parameter->type.kind != type_k::number)
-        die("sin/1: expected argument of type <number>, got <%s>"
-            , type_to_string(&parameter->type).c_str());
-      parameter->number.value = sin(parameter->number.value);
-      return parameter;
-    }
-    const term_t *definition = nullptr;
-    for (const term_t *const tl_term : program.terms) {
-      if (tl_term->kind != term_k::definition)
-        continue;
-      if (*tl_term->definition.name
-          != *term->application.lambda->identifier.name)
-        continue;
-      definition = tl_term;
-    }
-    if (!definition)
-      die("unknown application identifier \"%s\""
-          , term->application.lambda->identifier.name->c_str());
-    lambda = evaluate_term(definition->definition.body, program);
-  } else if (term->application.lambda->kind == term_k::application)
+  if (term->application.lambda->kind == term_k::identifier)
+    lambda = evaluate_term(term->application.lambda, program);
+  else if (term->application.lambda->kind == term_k::application)
     lambda = evaluate_term(term->application.lambda, program);
   else
     die("unexpected application lambda kind <%s>"
         , term_kind_to_string(term->application.lambda->kind).c_str());
 
-  if (lambda->type.kind != type_k::lambda)
-    die("unexpected application lambda type <%s>, expected <lambda>"
-        , type_to_string(&lambda->type).c_str());
-
-  if (!lambda->lambda.body->scope)
-    lambda->lambda.body->scope = new scope_t;
-  (*lambda->lambda.body->scope)[*lambda->lambda.arg] = parameter;
-  value_t *result = evaluate_term(lambda->lambda.body, program);
-  return result;
+  switch (lambda->type.kind) {
+    case type_k::builtin:
+      return evaluate_builtin(lambda, parameter, program);
+    case type_k::lambda:
+      if (!lambda->lambda.body->scope)
+        lambda->lambda.body->scope = new scope_t;
+      (*lambda->lambda.body->scope)[*lambda->lambda.arg] = parameter;
+      return evaluate_term(lambda->lambda.body, program);
+    default:
+      die("unexpected application lambda type <%s>, expected <lambda> or "
+          "<builtin>", type_to_string(&lambda->type).c_str());
+  }
 }
 
 value_t* evaluate_term(const term_t *const term, const program_t &program) {
@@ -64,11 +65,29 @@ value_t* evaluate_term(const term_t *const term, const program_t &program) {
     case term_k::constant:
       return term->constant.value;
       break;
-    case term_k::identifier:
+    case term_k::identifier: {
+      // identifier can be a builtin,
+      if (*term->identifier.name == "mult")
+        return value_builtin(builtin_mult(nullptr));
+      if (*term->identifier.name == "sin")
+        return value_builtin(builtin_sin());
+      // be in scope
       value_t *value;
       if (term->lookup(*term->identifier.name, value))
         return value;
+      // or be a top-level definition
+      const term_t *definition = nullptr;
+      for (const term_t *const tl_term : program.terms) {
+        if (tl_term->kind != term_k::definition)
+          continue;
+        if (*tl_term->definition.name != *term->identifier.name)
+          continue;
+        definition = tl_term;
+      }
+      if (definition != nullptr)
+        return evaluate_term(definition->definition.body, program);
       die("unknown identifier \"%s\"", term->identifier.name->c_str());
+    }
     case term_k::case_of: {
       value_t *value = evaluate_term(term->case_of.value, program);
       if (value->type.kind != type_k::number)
@@ -148,11 +167,13 @@ int main() {
   // mult = (\x . (\y .
   // case y of
   //  0 -> x
-  //  _ -> (add (mult x (pred y)) x)
+  //  _ -> (add ((mult x) (pred y)) x)
   // ))
+
   // double = (\ a . (mult 2) a )
   // main = (\ f . (λ t . (sin ((mult ((mult f) t)) (double pi)))))
   program_t program = { std::vector<term_t*>{
+#if 0
     term_definition("add",
       term_constant(value_lambda("x",
         term_constant(value_lambda("y",
@@ -180,7 +201,6 @@ int main() {
         ))
       ))
     ),
-
     term_definition("mult",
       term_constant(value_lambda("x",
         term_constant(value_lambda("y",
@@ -194,7 +214,7 @@ int main() {
                     term_identifier("add"),
                     term_application(
                       term_application(
-                        term_identifier("add"),
+                        term_identifier("mult"),
                         term_identifier("x")
                       ),
                       term_application(
@@ -211,7 +231,7 @@ int main() {
         ))
       ))
     ),
-
+#endif
     term_definition("double",
       term_constant(value_lambda("a",
         term_application(
@@ -249,6 +269,8 @@ int main() {
       ))
     )
   }};
+
+  program.pretty_print();
 
   std::vector<message_t> messages;
   program.validate_top_level_functions(&messages);

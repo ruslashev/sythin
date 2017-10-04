@@ -7,7 +7,8 @@
 enum class type_k {
   undef, // may be unneeded
   number,
-  lambda
+  lambda,
+  builtin
 };
 
 struct type_t {
@@ -23,6 +24,22 @@ std::string type_to_string(const type_t *const type);
 
 struct term_t;
 
+enum class builtin_k {
+  mult,
+  sin
+};
+
+std::string buitin_kind_to_string(builtin_k kind);
+
+struct builtin_t {
+  builtin_k kind;
+  union {
+    struct {
+      term_t *x; // can be null for partial application
+    } mult;
+  };
+};
+
 struct value_t {
   type_t type;
   union {
@@ -33,6 +50,9 @@ struct value_t {
       std::string *arg;
       term_t *body;
     } lambda;
+    struct {
+      builtin_t *builtin;
+    } builtin; // should not be a struct
   };
   value_t();
   ~value_t();
@@ -76,7 +96,7 @@ struct term_t {
     } case_of;
     struct {
       value_t *value;
-    } constant;
+    } constant; // should not be a struct
   };
 
   term_t *parent;
@@ -108,8 +128,12 @@ struct program_t {
   void pretty_print();
 };
 
+builtin_t* builtin_mult(term_t *x);
+builtin_t* builtin_sin();
+
 value_t* value_number(double value);
 value_t* value_lambda(const std::string &arg, term_t *body);
+value_t* value_builtin(builtin_t *builtin);
 
 term_t* term_definition(const std::string &name, term_t *body);
 term_t* term_application(term_t *lambda, term_t *parameter);
