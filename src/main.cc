@@ -3,10 +3,10 @@
 #include "lang.hh"
 #include "utils.hh"
 
-value_t* evaluate_term(const term_t *const term, const program_t &program);
+value_t* evaluate_term(const term_t *const term, const term_t *const program);
 
 value_t* evaluate_builtin(value_t *const lambda, value_t *const parameter
-    , const program_t &program) {
+    , const term_t *const program) {
   switch (lambda->builtin.builtin->kind) {
     case builtin_k::mult:
       if (lambda->builtin.builtin->mult.x == nullptr) {
@@ -35,7 +35,7 @@ value_t* evaluate_builtin(value_t *const lambda, value_t *const parameter
 }
 
 value_t* evaluate_application(const term_t *const term
-    , const program_t &program) {
+    , const term_t *const program) {
   value_t *lambda = nullptr
     , *parameter = evaluate_term(term->application.parameter, program);
   if (term->application.lambda->kind == term_k::identifier)
@@ -60,7 +60,7 @@ value_t* evaluate_application(const term_t *const term
   }
 }
 
-value_t* evaluate_term(const term_t *const term, const program_t &program) {
+value_t* evaluate_term(const term_t *const term, const term_t *const program) {
   switch (term->kind) {
     case term_k::constant:
       return term->constant.value;
@@ -77,7 +77,7 @@ value_t* evaluate_term(const term_t *const term, const program_t &program) {
         return value;
       // or be a top-level definition
       const term_t *definition = nullptr;
-      for (const term_t *const tl_term : program.terms) {
+      for (const term_t *const tl_term : *program->program.terms) {
         if (tl_term->kind != term_k::definition)
           continue;
         if (*tl_term->definition.name != *term->identifier.name)
@@ -120,9 +120,9 @@ value_t* evaluate_term(const term_t *const term, const program_t &program) {
   }
 }
 
-double evaluate_program(const program_t &program, double f, double t) {
+double evaluate_program(term_t *program, double f, double t) {
   term_t *main_def = nullptr;
-  for (term_t *term : program.terms) {
+  for (term_t *const term : *program->program.terms) {
     if (term->kind != term_k::definition)
       continue;
     if (*term->definition.name != "main")
@@ -132,7 +132,6 @@ double evaluate_program(const program_t &program, double f, double t) {
   }
 
   main_def->scope = new scope_t;
-  (*main_def->scope)["pi"] = value_number(M_PI);
 
   term_t *main_lam = main_def->definition.body;
   assertf(main_lam->kind == term_k::constant);
@@ -159,6 +158,10 @@ double evaluate_program(const program_t &program, double f, double t) {
 }
 
 int main() {
+  // these functions are unused (and builtins are used instead) because
+  // they blow up stack becase of level of recursion of evaluate_term()s
+  // etc. when used on large numbers
+
   // add = (\x . (\y .
   // case y of
   //  0 -> x
@@ -170,9 +173,13 @@ int main() {
   //  _ -> (add ((mult x) (pred y)) x)
   // ))
 
-  // double = (\ a . (mult 2) a )
-  // main = (\ f . (λ t . (sin ((mult ((mult f) t)) (double pi)))))
-  program_t program = { std::vector<term_t*>{
+  // two = 2
+  // sin_alias = sin
+  // double = (mult two)
+  // mult3 = (\ x . ( \y . ( \z . (mult ((mult x) y) z) )))
+  // mult2pi2 = (mult3 (double pi))
+  // main = (\ f . (λ t . (sin_alias ((mult2pi2 f) t))
+  term_t *program = term_program(new std::vector<term_t*>{
 #if 0
     term_definition("add",
       term_constant(value_lambda("x",
@@ -232,48 +239,72 @@ int main() {
       ))
     ),
 #endif
-    term_definition("double",
-      term_constant(value_lambda("a",
-        term_application(
-          term_application(
-            term_identifier("mult"),
-            term_constant(value_number(2))
-          ),
-          term_identifier("a")
-        )
-      ))
+    term_definition("two",
+      term_constant(value_number(2))
     ),
-    term_definition("main",
-      term_constant(value_lambda("f",
-        term_constant(value_lambda("t",
-          term_application(
-            term_identifier("sin"),
+    term_definition("sin_alias",
+      term_identifier("sin")
+    ),
+    term_definition("double",
+      term_application(
+        term_identifier("mult"),
+        term_identifier("two")
+      )
+    ),
+    term_definition("mult3",
+      term_constant(value_lambda("x",
+        term_constant(value_lambda("y",
+          term_constant(value_lambda("z",
             term_application(
               term_application(
                 term_identifier("mult"),
                 term_application(
                   term_application(
                     term_identifier("mult"),
-                    term_identifier("f")
+                    term_identifier("x")
                   ),
-                  term_identifier("t")
+                  term_identifier("y")
                 )
               ),
+              term_identifier("z")
+            )
+          ))
+        ))
+      ))
+    ),
+    term_definition("mult2pi2",
+      term_application(
+        term_identifier("mult3"),
+        term_application(
+          term_identifier("double"),
+          term_identifier("pi")
+        )
+      )
+    ),
+    term_definition("main",
+      term_constant(value_lambda("f",
+        term_constant(value_lambda("t",
+          term_application(
+            term_identifier("sin_alias"),
+            term_application(
               term_application(
-                term_identifier("double"),
-                term_identifier("pi")
-              )
+                term_identifier("mult2pi2"),
+                term_identifier("f")
+              ),
+              term_identifier("t")
             )
           )
         ))
       ))
     )
-  }};
+  });
+  program->scope = new scope_t;
+  (*program->scope)["pi"] = value_number(M_PI);
 
-  program.pretty_print();
+  program->pretty_print();
 
   std::vector<message_t> messages;
-  program.validate_top_level_functions(&messages);
+  validate_top_level_functions(program, &messages);
   for (const message_t &message : messages)
     printf("%s: %s\n", message_kind_to_string(message.kind).c_str()
         , message.content.c_str());

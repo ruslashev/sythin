@@ -39,6 +39,17 @@ std::string buitin_kind_to_string(builtin_k kind) {
   }
 }
 
+builtin_t::~builtin_t() {
+  switch (kind) {
+    case builtin_k::mult:
+      if (mult.x)
+        delete mult.x;
+      break;
+    default:
+      break;
+  }
+}
+
 value_t::value_t() {
   type.kind = type_k::undef;
 }
@@ -49,6 +60,8 @@ value_t::~value_t() {
       delete lambda.arg;
       delete lambda.body;
       break;
+    case type_k::builtin:
+      delete builtin.builtin;
     default:
       break;
   }
@@ -88,6 +101,10 @@ std::string term_kind_to_string(term_k kind) {
 
 term_t::~term_t() {
   switch (kind) {
+    case term_k::program:
+      for (const term_t *term : *program.terms)
+        delete term;
+      break;
     case term_k::definition:
       delete definition.name;
       delete definition.body;
@@ -136,6 +153,12 @@ bool term_t::lookup(const std::string &identifier, value_t *&value) const {
 
 void term_t::pretty_print() const {
   switch (kind) {
+    case term_k::program:
+      for (const term_t *const term : *program.terms) {
+        term->pretty_print();
+        printf("\n");
+      }
+      break;
     case term_k::definition:
       printf("%s = ", definition.name->c_str());
       definition.body->pretty_print();
@@ -186,29 +209,21 @@ bool messages_contain_no_errors(const std::vector<message_t> &messages) {
   return true;
 }
 
-program_t::~program_t() {
-  for (const term_t *term : terms)
-    delete term;
-}
+void validate_top_level_functions(const term_t *const term
+    , std::vector<message_t> *messages) {
+  if (term->kind != term_k::program) {
+    messages->push_back({ message_k::error, "program parsing error" });
+    return;
+  }
 
-void program_t::validate_top_level_functions(std::vector<message_t> *messages)
-  const {
   std::map<std::string, int> function_occurence_counter;
-  for (const term_t *term : terms) {
+  for (const term_t *term : *term->program.terms) {
     if (term->kind != term_k::definition) {
       std::string message_content = "top-level term of type <"
         + term_kind_to_string(term->kind) + "> has no effect";
       messages->push_back({ message_k::warning, message_content });
       continue;
     }
-    /*
-    if (*term->function.name == "main" && term->function.body. != 2) {
-      std::string message_content = "main function must take 2 arguments "
-        "(frequency and time): expected 2, got "
-        + std::to_string(term->function.args->size());
-      messages->push_back({ message_k::error, message_content });
-    }
-    */
     // remember that first call to operator[] initializes the counter with zero
     ++function_occurence_counter[*term->definition.name];
   }
@@ -220,17 +235,10 @@ void program_t::validate_top_level_functions(std::vector<message_t> *messages)
       messages->push_back({ message_k::error, message_content });
     }
 
-  auto main_occ_it = function_occurence_counter.find("main");
-  if (main_occ_it == function_occurence_counter.end()) {
+  if (function_occurence_counter.find("main")
+      == function_occurence_counter.end()) {
     std::string message_content = "no main function";
     messages->push_back({ message_k::error, message_content });
-  }
-}
-
-void program_t::pretty_print() {
-  for (const term_t *const term : terms) {
-    term->pretty_print();
-    printf("\n");
   }
 }
 
@@ -270,6 +278,17 @@ value_t* value_builtin(builtin_t *builtin) {
   value->type.kind = type_k::builtin;
   value->builtin.builtin = builtin; // :thinking:
   return value;
+}
+
+term_t* term_program(std::vector<term_t*> *terms) {
+  term_t *t = new term_t;
+  t->kind = term_k::program;
+  t->program.terms = terms;
+  for (term_t *term : *t->program.terms)
+    term->parent = t;
+  t->parent = nullptr;
+  t->scope = nullptr;
+  return t;
 }
 
 term_t* term_definition(const std::string &name, term_t *body) {

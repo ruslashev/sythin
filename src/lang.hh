@@ -38,6 +38,7 @@ struct builtin_t {
       term_t *x; // can be null for partial application
     } mult;
   };
+  ~builtin_t();
 };
 
 struct value_t {
@@ -60,6 +61,7 @@ struct value_t {
 };
 
 enum class term_k {
+  program,
   definition,
   application,
   identifier,
@@ -79,6 +81,9 @@ struct term_t {
 
   term_k kind;
   union {
+    struct {
+      std::vector<term_t*> *terms;
+    } program; // should not be a struct
     struct {
       std::string *name;
       term_t *body;
@@ -121,12 +126,8 @@ struct message_t {
 
 bool messages_contain_no_errors(const std::vector<message_t> &messages);
 
-struct program_t {
-  std::vector<term_t*> terms;
-  ~program_t();
-  void validate_top_level_functions(std::vector<message_t> *messages) const;
-  void pretty_print();
-};
+void validate_top_level_functions(const term_t *const term
+    , std::vector<message_t> *messages);
 
 builtin_t* builtin_mult(term_t *x);
 builtin_t* builtin_sin();
@@ -135,6 +136,7 @@ value_t* value_number(double value);
 value_t* value_lambda(const std::string &arg, term_t *body);
 value_t* value_builtin(builtin_t *builtin);
 
+term_t* term_program(std::vector<term_t*> *terms);
 term_t* term_definition(const std::string &name, term_t *body);
 term_t* term_application(term_t *lambda, term_t *parameter);
 term_t* term_identifier(const std::string &name);
