@@ -5,58 +5,70 @@
 
 value_t* evaluate_term(const term_t *const term, const term_t *const program);
 
-value_t* evaluate_builtin(value_t *const lambda, value_t *const parameter
-    , const term_t *const program) {
-  switch (lambda->builtin.builtin->kind) {
-    case builtin_k::mult:
-      if (lambda->builtin.builtin->mult.x == nullptr) {
-        if (parameter->type.kind != type_k::number)
-          die("builtin mult/1: unexpected parameter of type <%s>, "
-              "expected <number>", type_to_string(&parameter->type).c_str());
-        lambda->builtin.builtin->mult.x = term_constant(parameter);
-        return lambda;
-      } else {
-        value_t *parameter_x = evaluate_term(lambda->builtin.builtin->mult.x
-            , program);
-        if (parameter->type.kind != type_k::number)
-          die("builtin mult/1: applied to value of type <%s>, "
-              "expected <number>", type_to_string(&parameter->type).c_str());
-        return value_number(parameter_x->number.value
-            * parameter->number.value);
-      }
-    case builtin_k::sin:
-      if (parameter->type.kind != type_k::number)
-        die("builtin sin/1: unexpected parameter of type <%s>, "
-            "expected <number>" , type_to_string(&parameter->type).c_str());
-      return value_number(sin(parameter->number.value));
-    default:
-      die("unexpected builtin kind");
-  }
-}
-
 value_t* evaluate_application(const term_t *const term
     , const term_t *const program) {
-  value_t *lambda = nullptr
-    , *parameter = evaluate_term(term->application.parameter, program);
-  if (term->application.lambda->kind == term_k::identifier)
-    lambda = evaluate_term(term->application.lambda, program);
-  else if (term->application.lambda->kind == term_k::application)
-    lambda = evaluate_term(term->application.lambda, program);
-  else
-    die("unexpected application lambda kind <%s>"
-        , term_kind_to_string(term->application.lambda->kind).c_str());
+  value_t *lambda = nullptr;
+  switch (term->application.lambda->kind) {
+    case term_k::identifier:
+    case term_k::application:
+    case term_k::constant:
+      lambda = evaluate_term(term->application.lambda, program);
+      break;
+    default:
+      die("unexpected application lambda kind <%s>"
+          , term_kind_to_string(term->application.lambda->kind).c_str());
+  }
 
   switch (lambda->type.kind) {
-    case type_k::builtin:
-      return evaluate_builtin(lambda, parameter, program);
-    case type_k::lambda:
+    case type_k::builtin: {
+      builtin_t *builtin = lambda->builtin.builtin;
+      switch (builtin->kind) {
+        case builtin_k::mult:
+          if (builtin->mult.x == nullptr) {
+            lambda->builtin.builtin->mult.x = term->application.parameter;
+            return lambda;
+          } else {
+            value_t *stored_parameter
+              = evaluate_term(lambda->builtin.builtin->mult.x, program);
+            if (stored_parameter->type.kind != type_k::number)
+              die("builtin mult/1: unexpected parameter of type <%s>, expected"
+                  " <number>", type_to_string(&stored_parameter->type).c_str());
+            value_t *applied_parameter
+              = evaluate_term(term->application.parameter, program);
+            if (applied_parameter->type.kind != type_k::number)
+              die("builtin mult/1: applied to value of type <%s>, expected"
+                  " <number>", type_to_string(&applied_parameter->type).c_str());
+            builtin->mult.x = nullptr;
+            // applied_parameter->number.value *= stored_parameter->number.value;
+            // return applied_parameter;
+            return value_number(applied_parameter->number.value * stored_parameter->number.value);
+          }
+        case builtin_k::sin: {
+          value_t *applied_parameter
+            = evaluate_term(term->application.parameter, program);
+          if (applied_parameter->type.kind != type_k::number)
+            die("builtin sin/1: unexpected parameter of type <%s>, expected"
+                " <number>" , type_to_string(&applied_parameter->type).c_str());
+          // applied_parameter->number.value = sin(applied_parameter->number.value);
+          // return applied_parameter;
+          return value_number(sin(applied_parameter->number.value));
+        }
+        default:
+          die("unexpected builtin kind");
+      }
+      break;
+    }
+    case type_k::lambda: {
+      value_t *parameter = evaluate_term(term->application.parameter, program);
       if (!lambda->lambda.body->scope)
         lambda->lambda.body->scope = new scope_t;
       (*lambda->lambda.body->scope)[*lambda->lambda.arg] = parameter;
       return evaluate_term(lambda->lambda.body, program);
+      // maybe delete scope here and return later?
+    }
     default:
-      die("unexpected application lambda type <%s>, expected <lambda> or "
-          "<builtin>", type_to_string(&lambda->type).c_str());
+      die("unexpected application lambda type <%s>"
+          , type_to_string(&lambda->type).c_str());
   }
 }
 
@@ -66,12 +78,7 @@ value_t* evaluate_term(const term_t *const term, const term_t *const program) {
       return term->constant.value;
       break;
     case term_k::identifier: {
-      // identifier can be a builtin,
-      if (*term->identifier.name == "mult")
-        return value_builtin(builtin_mult(nullptr));
-      if (*term->identifier.name == "sin")
-        return value_builtin(builtin_sin());
-      // be in scope
+      // identifier can be in scope
       value_t *value;
       if (term->lookup(*term->identifier.name, value))
         return value;
@@ -243,11 +250,11 @@ int main() {
       term_constant(value_number(2))
     ),
     term_definition("sin_alias",
-      term_identifier("sin")
+      term_constant(value_builtin(builtin_sin()))
     ),
     term_definition("double",
       term_application(
-        term_identifier("mult"),
+        term_constant(value_builtin(builtin_mult())),
         term_identifier("two")
       )
     ),
@@ -257,10 +264,10 @@ int main() {
           term_constant(value_lambda("z",
             term_application(
               term_application(
-                term_identifier("mult"),
+                term_constant(value_builtin(builtin_mult())),
                 term_application(
                   term_application(
-                    term_identifier("mult"),
+                    term_constant(value_builtin(builtin_mult())),
                     term_identifier("x")
                   ),
                   term_identifier("y")
@@ -302,6 +309,9 @@ int main() {
   (*program->scope)["pi"] = value_number(M_PI);
 
   program->pretty_print();
+
+  double wowza = evaluate_program(program, 0, 0);
+  return 0;
 
   std::vector<message_t> messages;
   validate_top_level_functions(program, &messages);

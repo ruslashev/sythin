@@ -31,7 +31,7 @@ std::string type_to_string(const type_t *const type) {
   }
 }
 
-std::string buitin_kind_to_string(builtin_k kind) {
+std::string builtin_kind_to_string(builtin_k kind) {
   switch (kind) {
     case builtin_k::mult: return "mult";
     case builtin_k::sin:  return "sin";
@@ -81,6 +81,9 @@ void value_t::pretty_print() const {
       printf("(\\ %s . ", lambda.arg->c_str());
       lambda.body->pretty_print();
       printf(")");
+      break;
+    case type_k::builtin:
+      printf("%s", builtin_kind_to_string(builtin.builtin->kind).c_str());
       break;
     default:
       printf("unhandled");
@@ -242,10 +245,10 @@ void validate_top_level_functions(const term_t *const term
   }
 }
 
-builtin_t* builtin_mult(term_t *x) {
+builtin_t* builtin_mult() {
   builtin_t *b = new builtin_t;
   b->kind = builtin_k::mult;
-  b->mult.x = x;
+  b->mult.x = nullptr;
   return b;
 }
 

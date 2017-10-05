@@ -29,7 +29,7 @@ enum class builtin_k {
   sin
 };
 
-std::string buitin_kind_to_string(builtin_k kind);
+std::string builtin_kind_to_string(builtin_k kind);
 
 struct builtin_t {
   builtin_k kind;
@@ -129,7 +129,7 @@ bool messages_contain_no_errors(const std::vector<message_t> &messages);
 void validate_top_level_functions(const term_t *const term
     , std::vector<message_t> *messages);
 
-builtin_t* builtin_mult(term_t *x);
+builtin_t* builtin_mult();
 builtin_t* builtin_sin();
 
 value_t* value_number(double value);
