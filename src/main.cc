@@ -12,7 +12,7 @@ value_t* evaluate_application(const term_t *const term
   switch (term->application.lambda->kind) {
     case term_k::identifier:
     case term_k::application:
-    case term_k::constant:
+    case term_k::value:
       lambda = evaluate_term(term->application.lambda, program, garbage);
       break;
     default:
@@ -22,15 +22,14 @@ value_t* evaluate_application(const term_t *const term
 
   switch (lambda->type.kind) {
     case type_k::builtin: {
-      builtin_t *builtin = lambda->builtin.builtin;
-      switch (builtin->kind) {
+      switch (lambda->builtin->kind) {
         case builtin_k::mult:
-          if (builtin->mult.x == nullptr) {
-            lambda->builtin.builtin->mult.x = term->application.parameter;
+          if (lambda->builtin->mult.x == nullptr) {
+            lambda->builtin->mult.x = term->application.parameter;
             return lambda;
           } else {
             value_t *stored_parameter
-              = evaluate_term(lambda->builtin.builtin->mult.x, program, garbage);
+              = evaluate_term(lambda->builtin->mult.x, program, garbage);
             if (stored_parameter->type.kind != type_k::number)
               die("builtin mult/1: unexpected parameter of type <%s>, expected"
                   " <number>", type_to_string(&stored_parameter->type).c_str());
@@ -39,11 +38,11 @@ value_t* evaluate_application(const term_t *const term
             if (applied_parameter->type.kind != type_k::number)
               die("builtin mult/1: applied to value of type <%s>, expected"
                   " <number>", type_to_string(&applied_parameter->type).c_str());
-            builtin->mult.x = nullptr;
+            lambda->builtin->mult.x = nullptr;
             // applied_parameter->number.value *= stored_parameter->number.value;
             // return applied_parameter;
-            value_t *result = value_number(applied_parameter->number.value
-                * stored_parameter->number.value);
+            value_t *result = value_number(applied_parameter->number
+                * stored_parameter->number);
             garbage->push_back(result);
             return result;
           }
@@ -55,7 +54,7 @@ value_t* evaluate_application(const term_t *const term
                 " <number>" , type_to_string(&applied_parameter->type).c_str());
           // applied_parameter->number.value = sin(applied_parameter->number.value);
           // return applied_parameter;
-          value_t *result = value_number(sin(applied_parameter->number.value));
+          value_t *result = value_number(sin(applied_parameter->number));
           garbage->push_back(result);
           return result;
         }
@@ -82,8 +81,8 @@ value_t* evaluate_application(const term_t *const term
 value_t* evaluate_term(const term_t *const term, const term_t *const program
     , std::vector<value_t*> *garbage) {
   switch (term->kind) {
-    case term_k::constant:
-      return term->constant.value;
+    case term_k::value:
+      return term->value;
       break;
     case term_k::identifier: {
       // identifier can be in scope
@@ -117,8 +116,8 @@ value_t* evaluate_term(const term_t *const term, const term_t *const program
               , garbage);
           if (statement_value->type.kind != type_k::number)
             die("anything but numbers are not supported in case statements yet");
-          long long int value_i = std::round(value->number.value)
-            , statement_value_i = std::round(statement_value->number.value);
+          long long int value_i = std::round(value->number)
+            , statement_value_i = std::round(statement_value->number);
           if (value_i == statement_value_i) {
             result = statement.result;
             break;
@@ -156,16 +155,16 @@ double evaluate_program(term_t *program, double f, double t) {
   garbage.push_back(value_time);
 
   term_t *main_lam = main_def->definition.body;
-  assertf(main_lam->kind == term_k::constant);
-  assertf(main_lam->constant.value->type.kind == type_k::lambda);
-  value_t *lam_freq = main_lam->constant.value;
+  assertf(main_lam->kind == term_k::value);
+  assertf(main_lam->value->type.kind == type_k::lambda);
+  value_t *lam_freq = main_lam->value;
   std::map<std::string, value_t*> main_parameter_value_freq;
   (*main_def->scope)[*lam_freq->lambda.arg] = value_freq;
 
   term_t *lam_time_term = lam_freq->lambda.body;
-  assertf(lam_time_term->kind == term_k::constant);
-  assertf(lam_time_term->constant.value->type.kind == type_k::lambda);
-  value_t *lam_time = lam_time_term->constant.value;
+  assertf(lam_time_term->kind == term_k::value);
+  assertf(lam_time_term->value->type.kind == type_k::lambda);
+  value_t *lam_time = lam_time_term->value;
   std::map<std::string, value_t*> main_parameter_value_time;
   (*main_def->scope)[*lam_time->lambda.arg] = value_time;
 
@@ -175,7 +174,7 @@ double evaluate_program(term_t *program, double f, double t) {
   if (program_result->type.kind != type_k::number)
     die("program returned value of type <%s>, expected <number>"
         , type_to_string(&program_result->type).c_str());
-  double result = program_result->number.value;
+  double result = program_result->number;
 
   for (const value_t *const value : garbage)
     delete value;
@@ -209,27 +208,27 @@ int main() {
   // main = (\ f . (λ t . (sin_alias ((mult2pi2 f) t))
   term_t *program = term_program(new std::vector<term_t*>{
     term_definition("two",
-      term_constant(value_number(2))
+      term_value(value_number(2))
     ),
     term_definition("sin_alias",
-      term_constant(value_builtin(builtin_sin()))
+      term_value(value_builtin(builtin_sin()))
     ),
     term_definition("double",
       term_application(
-        term_constant(value_builtin(builtin_mult())),
+        term_value(value_builtin(builtin_mult())),
         term_identifier("two")
       )
     ),
     term_definition("mult3",
-      term_constant(value_lambda("x",
-        term_constant(value_lambda("y",
-          term_constant(value_lambda("z",
+      term_value(value_lambda("x",
+        term_value(value_lambda("y",
+          term_value(value_lambda("z",
             term_application(
               term_application(
-                term_constant(value_builtin(builtin_mult())),
+                term_value(value_builtin(builtin_mult())),
                 term_application(
                   term_application(
-                    term_constant(value_builtin(builtin_mult())),
+                    term_value(value_builtin(builtin_mult())),
                     term_identifier("x")
                   ),
                   term_identifier("y")
@@ -251,8 +250,8 @@ int main() {
       )
     ),
     term_definition("main",
-      term_constant(value_lambda("f",
-        term_constant(value_lambda("t",
+      term_value(value_lambda("f",
+        term_value(value_lambda("t",
           term_application(
             term_identifier("sin_alias"),
             term_application(

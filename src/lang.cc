@@ -55,22 +55,17 @@ value_t::~value_t() {
       delete lambda.body;
       break;
     case type_k::builtin:
-      delete builtin.builtin;
+      delete builtin;
       break;
     default:
       break;
   }
 }
 
-static void print_indent(int level) {
-  for (int i = 0; i < level; ++i)
-    printf(" ");
-}
-
 void value_t::pretty_print() const {
   switch (type.kind) {
     case type_k::number:
-      printf("%4.2f", number.value);
+      printf("%4.2f", number);
       break;
     case type_k::lambda:
       printf("(\\ %s . ", lambda.arg->c_str());
@@ -78,7 +73,7 @@ void value_t::pretty_print() const {
       printf(")");
       break;
     case type_k::builtin:
-      printf("%s", builtin_kind_to_string(builtin.builtin->kind).c_str());
+      printf("%s", builtin_kind_to_string(builtin->kind).c_str());
       break;
     default:
       printf("unhandled");
@@ -92,7 +87,7 @@ std::string term_kind_to_string(term_k kind) {
     case term_k::application: return "application";
     case term_k::identifier:  return "identifier";
     case term_k::case_of:     return "case of";
-    case term_k::constant:    return "constant";
+    case term_k::value:       return "value";
     default:                  return "unhandled";
   }
 }
@@ -123,8 +118,8 @@ term_t::~term_t() {
       }
       delete case_of.statements;
       break;
-    case term_k::constant:
-      delete constant.value;
+    case term_k::value:
+      delete value;
       break;
     default:
       break;
@@ -188,8 +183,8 @@ void term_t::pretty_print() const {
         printf("; ");
       }
       break;
-    case term_k::constant:
-      constant.value->pretty_print();
+    case term_k::value:
+      value->pretty_print();
     default:
       break;
   }
@@ -256,10 +251,10 @@ builtin_t* builtin_sin() {
   return b;
 }
 
-value_t* value_number(double number_value) {
+value_t* value_number(double number) {
   value_t *value = new value_t;
   value->type.kind = type_k::number;
-  value->number.value = number_value;
+  value->number = number;
   return value;
 }
 
@@ -277,7 +272,7 @@ value_t* value_lambda(const std::string &arg, term_t *body) {
 value_t* value_builtin(builtin_t *builtin) {
   value_t *value = new value_t;
   value->type.kind = type_k::builtin;
-  value->builtin.builtin = builtin; // :thinking:
+  value->builtin = builtin;
   return value;
 }
 
@@ -341,12 +336,12 @@ term_t* term_case_of(term_t *value
   return t;
 }
 
-term_t* term_constant(value_t *value) {
+term_t* term_value(value_t *value) {
   term_t *t = new term_t;
-  t->kind = term_k::constant;
-  t->constant.value = value;
+  t->kind = term_k::value;
+  t->value = value;
   if (value->type.kind == type_k::lambda)
-    t->constant.value->lambda.body->parent = t;
+    t->value->lambda.body->parent = t;
   t->parent = nullptr;
   t->scope = nullptr;
   return t;

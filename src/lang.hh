@@ -43,16 +43,12 @@ struct builtin_t {
 struct value_t {
   type_t type;
   union {
-    struct {
-      double value;
-    } number;
+    double number;
     struct {
       std::string *arg;
       term_t *body;
     } lambda;
-    struct {
-      builtin_t *builtin;
-    } builtin; // should not be a struct
+    builtin_t *builtin;
   };
   ~value_t();
   void pretty_print() const;
@@ -64,7 +60,7 @@ enum class term_k {
   application,
   identifier,
   case_of,
-  constant // should be called 'value'
+  value // should be called 'value'
 };
 
 std::string term_kind_to_string(term_k kind);
@@ -81,7 +77,7 @@ struct term_t {
   union {
     struct {
       std::vector<term_t*> *terms;
-    } program; // should not be a struct
+    } program;
     struct {
       std::string *name;
       term_t *body;
@@ -97,9 +93,7 @@ struct term_t {
       term_t *value;
       std::vector<case_statement> *statements;
     } case_of;
-    struct {
-      value_t *value;
-    } constant; // should not be a struct
+    value_t *value;
   };
 
   term_t *parent;
@@ -130,7 +124,7 @@ void validate_top_level_functions(const term_t *const term
 builtin_t* builtin_mult();
 builtin_t* builtin_sin();
 
-value_t* value_number(double value);
+value_t* value_number(double number);
 value_t* value_lambda(const std::string &arg, term_t *body);
 value_t* value_builtin(builtin_t *builtin);
 
@@ -140,5 +134,5 @@ term_t* term_application(term_t *lambda, term_t *parameter);
 term_t* term_identifier(const std::string &name);
 term_t* term_case_of(term_t *value
     , std::vector<term_t::case_statement> *statements);
-term_t* term_constant(value_t *value);
+term_t* term_value(value_t *value);
 
