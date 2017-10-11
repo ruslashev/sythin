@@ -4,8 +4,6 @@ std::string type_to_string(const type_t *const type) {
   if (type == nullptr)
     return "(null)";
   switch (type->kind) {
-    case type_k::undef:
-      return "undef";
     case type_k::number:
       return "number";
     case type_k::lambda: {
@@ -48,10 +46,6 @@ builtin_t::~builtin_t() {
     default:
       break;
   }
-}
-
-value_t::value_t() {
-  type.kind = type_k::undef;
 }
 
 value_t::~value_t() {

@@ -5,7 +5,6 @@
 #include <vector>
 
 enum class type_k {
-  undef, // may be unneeded
   number,
   lambda,
   builtin
@@ -55,7 +54,6 @@ struct value_t {
       builtin_t *builtin;
     } builtin; // should not be a struct
   };
-  value_t();
   ~value_t();
   void pretty_print() const;
 };

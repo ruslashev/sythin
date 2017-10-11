@@ -137,12 +137,6 @@ value_t* evaluate_term(const term_t *const term, const term_t *const program
 }
 
 double evaluate_program(term_t *program, double f, double t) {
-  std::vector<value_t*> garbage;
-
-  program->scope = new scope_t;
-  (*program->scope)["pi"] = value_number(M_PI);
-  garbage.push_back((*program->scope)["pi"]);
-
   term_t *main_def = nullptr;
   for (term_t *const term : *program->program.terms) {
     if (term->kind != term_k::definition)
@@ -157,6 +151,7 @@ double evaluate_program(term_t *program, double f, double t) {
 
   value_t *value_freq = value_number(f), *value_time = value_number(t);
 
+  std::vector<value_t*> garbage;
   garbage.push_back(value_freq);
   garbage.push_back(value_time);
 
@@ -184,8 +179,6 @@ double evaluate_program(term_t *program, double f, double t) {
 
   for (const value_t *const value : garbage)
     delete value;
-  delete program->scope;
-  program->scope = nullptr;
   delete main_def->scope;
   main_def->scope = nullptr;
 
@@ -274,6 +267,10 @@ int main() {
       ))
     )
   });
+  scope_t global_scope {
+    { "pi", value_number(M_PI) }
+  };
+  program->scope = &global_scope;
 
   program->pretty_print();
 
@@ -307,6 +304,9 @@ int main() {
 
   write_wav("out.wav", sample_rate, samples);
 
+  for (const auto &scope_pair : global_scope)
+    delete scope_pair.second;
+  program->scope = nullptr;
   delete program;
 }
 
