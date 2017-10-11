@@ -141,7 +141,7 @@ double evaluate_program(term_t *program, double f, double t) {
 
   program->scope = new scope_t;
   (*program->scope)["pi"] = value_number(M_PI);
-  // garbage.push_back((*program->scope)["pi"]);
+  garbage.push_back((*program->scope)["pi"]);
 
   term_t *main_def = nullptr;
   for (term_t *const term : *program->program.terms) {
@@ -157,8 +157,8 @@ double evaluate_program(term_t *program, double f, double t) {
 
   value_t *value_freq = value_number(f), *value_time = value_number(t);
 
-  // garbage.push_back(value_freq);
-  // garbage.push_back(value_time);
+  garbage.push_back(value_freq);
+  garbage.push_back(value_time);
 
   term_t *main_lam = main_def->definition.body;
   assertf(main_lam->kind == term_k::constant);
@@ -185,7 +185,9 @@ double evaluate_program(term_t *program, double f, double t) {
   for (const value_t *const value : garbage)
     delete value;
   delete program->scope;
+  program->scope = nullptr;
   delete main_def->scope;
+  main_def->scope = nullptr;
 
   return result;
 }
