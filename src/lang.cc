@@ -62,6 +62,7 @@ value_t::~value_t() {
       break;
     case type_k::builtin:
       delete builtin.builtin;
+      break;
     default:
       break;
   }
@@ -105,8 +106,9 @@ std::string term_kind_to_string(term_k kind) {
 term_t::~term_t() {
   switch (kind) {
     case term_k::program:
-      for (const term_t *term : *program.terms)
+      for (const term_t *const term : *program.terms)
         delete term;
+      delete program.terms;
       break;
     case term_k::definition:
       delete definition.name;
@@ -129,6 +131,7 @@ term_t::~term_t() {
       break;
     case term_k::constant:
       delete constant.value;
+      break;
     default:
       break;
   }

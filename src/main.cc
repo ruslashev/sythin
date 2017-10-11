@@ -3,16 +3,17 @@
 #include "lang.hh"
 #include "utils.hh"
 
-value_t* evaluate_term(const term_t *const term, const term_t *const program);
+value_t* evaluate_term(const term_t *const term, const term_t *const program
+    , std::vector<value_t*> *garbage);
 
 value_t* evaluate_application(const term_t *const term
-    , const term_t *const program) {
+    , const term_t *const program, std::vector<value_t*> *garbage) {
   value_t *lambda = nullptr;
   switch (term->application.lambda->kind) {
     case term_k::identifier:
     case term_k::application:
     case term_k::constant:
-      lambda = evaluate_term(term->application.lambda, program);
+      lambda = evaluate_term(term->application.lambda, program, garbage);
       break;
     default:
       die("unexpected application lambda kind <%s>"
@@ -29,29 +30,34 @@ value_t* evaluate_application(const term_t *const term
             return lambda;
           } else {
             value_t *stored_parameter
-              = evaluate_term(lambda->builtin.builtin->mult.x, program);
+              = evaluate_term(lambda->builtin.builtin->mult.x, program, garbage);
             if (stored_parameter->type.kind != type_k::number)
               die("builtin mult/1: unexpected parameter of type <%s>, expected"
                   " <number>", type_to_string(&stored_parameter->type).c_str());
             value_t *applied_parameter
-              = evaluate_term(term->application.parameter, program);
+              = evaluate_term(term->application.parameter, program, garbage);
             if (applied_parameter->type.kind != type_k::number)
               die("builtin mult/1: applied to value of type <%s>, expected"
                   " <number>", type_to_string(&applied_parameter->type).c_str());
             builtin->mult.x = nullptr;
             // applied_parameter->number.value *= stored_parameter->number.value;
             // return applied_parameter;
-            return value_number(applied_parameter->number.value * stored_parameter->number.value);
+            value_t *result = value_number(applied_parameter->number.value
+                * stored_parameter->number.value);
+            garbage->push_back(result);
+            return result;
           }
         case builtin_k::sin: {
           value_t *applied_parameter
-            = evaluate_term(term->application.parameter, program);
+            = evaluate_term(term->application.parameter, program, garbage);
           if (applied_parameter->type.kind != type_k::number)
             die("builtin sin/1: unexpected parameter of type <%s>, expected"
                 " <number>" , type_to_string(&applied_parameter->type).c_str());
           // applied_parameter->number.value = sin(applied_parameter->number.value);
           // return applied_parameter;
-          return value_number(sin(applied_parameter->number.value));
+          value_t *result = value_number(sin(applied_parameter->number.value));
+          garbage->push_back(result);
+          return result;
         }
         default:
           die("unexpected builtin kind");
@@ -59,11 +65,12 @@ value_t* evaluate_application(const term_t *const term
       break;
     }
     case type_k::lambda: {
-      value_t *parameter = evaluate_term(term->application.parameter, program);
+      value_t *parameter = evaluate_term(term->application.parameter, program
+          , garbage);
       if (!lambda->lambda.body->scope)
         lambda->lambda.body->scope = new scope_t;
       (*lambda->lambda.body->scope)[*lambda->lambda.arg] = parameter;
-      return evaluate_term(lambda->lambda.body, program);
+      return evaluate_term(lambda->lambda.body, program, garbage);
       // maybe delete scope here and return later?
     }
     default:
@@ -72,7 +79,8 @@ value_t* evaluate_application(const term_t *const term
   }
 }
 
-value_t* evaluate_term(const term_t *const term, const term_t *const program) {
+value_t* evaluate_term(const term_t *const term, const term_t *const program
+    , std::vector<value_t*> *garbage) {
   switch (term->kind) {
     case term_k::constant:
       return term->constant.value;
@@ -92,11 +100,11 @@ value_t* evaluate_term(const term_t *const term, const term_t *const program) {
         definition = tl_term;
       }
       if (definition != nullptr)
-        return evaluate_term(definition->definition.body, program);
+        return evaluate_term(definition->definition.body, program, garbage);
       die("unknown identifier \"%s\"", term->identifier.name->c_str());
     }
     case term_k::case_of: {
-      value_t *value = evaluate_term(term->case_of.value, program);
+      value_t *value = evaluate_term(term->case_of.value, program, garbage);
       if (value->type.kind != type_k::number)
         die("anything but numbers are not supported in case statements yet");
       term_t *result = nullptr;
@@ -105,7 +113,8 @@ value_t* evaluate_term(const term_t *const term, const term_t *const program) {
           result = statement.result;
           break;
         } else {
-          value_t *statement_value = evaluate_term(statement.value, program);
+          value_t *statement_value = evaluate_term(statement.value, program
+              , garbage);
           if (statement_value->type.kind != type_k::number)
             die("anything but numbers are not supported in case statements yet");
           long long int value_i = std::round(value->number.value)
@@ -117,17 +126,23 @@ value_t* evaluate_term(const term_t *const term, const term_t *const program) {
         }
       if (result == nullptr)
         die("no matching clause in case statement");
-      return evaluate_term(result, program);
+      return evaluate_term(result, program, garbage);
       break;
     }
     case term_k::application:
-      return evaluate_application(term, program);
+      return evaluate_application(term, program, garbage);
     default:
       die("unexpected term kind <%s>", term_kind_to_string(term->kind).c_str());
   }
 }
 
 double evaluate_program(term_t *program, double f, double t) {
+  std::vector<value_t*> garbage;
+
+  program->scope = new scope_t;
+  (*program->scope)["pi"] = value_number(M_PI);
+  // garbage.push_back((*program->scope)["pi"]);
+
   term_t *main_def = nullptr;
   for (term_t *const term : *program->program.terms) {
     if (term->kind != term_k::definition)
@@ -140,28 +155,39 @@ double evaluate_program(term_t *program, double f, double t) {
 
   main_def->scope = new scope_t;
 
+  value_t *value_freq = value_number(f), *value_time = value_number(t);
+
+  // garbage.push_back(value_freq);
+  // garbage.push_back(value_time);
+
   term_t *main_lam = main_def->definition.body;
   assertf(main_lam->kind == term_k::constant);
   assertf(main_lam->constant.value->type.kind == type_k::lambda);
   value_t *lam_freq = main_lam->constant.value;
   std::map<std::string, value_t*> main_parameter_value_freq;
-  (*main_def->scope)[*lam_freq->lambda.arg] = value_number(f);
+  (*main_def->scope)[*lam_freq->lambda.arg] = value_freq;
 
   term_t *lam_time_term = lam_freq->lambda.body;
   assertf(lam_time_term->kind == term_k::constant);
   assertf(lam_time_term->constant.value->type.kind == type_k::lambda);
   value_t *lam_time = lam_time_term->constant.value;
   std::map<std::string, value_t*> main_parameter_value_time;
-  (*main_def->scope)[*lam_time->lambda.arg] = value_number(t);
+  (*main_def->scope)[*lam_time->lambda.arg] = value_time;
 
   term_t *main_body = lam_time->lambda.body;
-  value_t *program_result = evaluate_term(main_body, program);
+  value_t *program_result = evaluate_term(main_body, program, &garbage);
 
   if (program_result->type.kind != type_k::number)
     die("program returned value of type <%s>, expected <number>"
         , type_to_string(&program_result->type).c_str());
+  double result = program_result->number.value;
+
+  for (const value_t *const value : garbage)
+    delete value;
+  delete program->scope;
   delete main_def->scope;
-  return program_result->number.value;
+
+  return result;
 }
 
 int main() {
@@ -187,65 +213,6 @@ int main() {
   // mult2pi2 = (mult3 (double pi))
   // main = (\ f . (λ t . (sin_alias ((mult2pi2 f) t))
   term_t *program = term_program(new std::vector<term_t*>{
-#if 0
-    term_definition("add",
-      term_constant(value_lambda("x",
-        term_constant(value_lambda("y",
-          term_case_of(
-            term_identifier("y"),
-            new std::vector<term_t::case_statement> {
-              { term_constant(value_number(0)), term_identifier("x") },
-              { nullptr,
-                term_application(
-                  term_identifier("succ"),
-                  term_application(
-                    term_application(
-                      term_identifier("add"),
-                      term_identifier("x")
-                    ),
-                    term_application(
-                      term_identifier("pred"),
-                      term_identifier("y")
-                    )
-                  )
-                )
-              }
-            }
-          )
-        ))
-      ))
-    ),
-    term_definition("mult",
-      term_constant(value_lambda("x",
-        term_constant(value_lambda("y",
-          term_case_of(
-            term_identifier("y"),
-            new std::vector<term_t::case_statement> {
-              { term_constant(value_number(0)), term_identifier("x") },
-              { nullptr,
-                term_application(
-                  term_application(
-                    term_identifier("add"),
-                    term_application(
-                      term_application(
-                        term_identifier("mult"),
-                        term_identifier("x")
-                      ),
-                      term_application(
-                        term_identifier("pred"),
-                        term_identifier("y")
-                      )
-                    )
-                  ),
-                  term_identifier("x")
-                )
-              }
-            }
-          )
-        ))
-      ))
-    ),
-#endif
     term_definition("two",
       term_constant(value_number(2))
     ),
@@ -305,13 +272,11 @@ int main() {
       ))
     )
   });
-  program->scope = new scope_t;
-  (*program->scope)["pi"] = value_number(M_PI);
 
   program->pretty_print();
 
-  double wowza = evaluate_program(program, 0, 0);
-  return 0;
+  // double wowza = evaluate_program(program, 0, 0);
+  // return 0;
 
   std::vector<message_t> messages;
   validate_top_level_functions(program, &messages);
@@ -339,5 +304,7 @@ int main() {
   }
 
   write_wav("out.wav", sample_rate, samples);
+
+  delete program;
 }
 
