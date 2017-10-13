@@ -13,7 +13,11 @@ enum class token_k {
   dot,
   word_case,
   word_of,
-  right_arrow
+  right_arrow,
+  plus,
+  minus,
+  multiply,
+  divide
 };
 
 std::string token_kind_to_string(token_k kind);
@@ -40,6 +44,7 @@ class lexer_t {
   int _line, _column;
 
   void _next_char();
+  bool _is_whitespace(char x);
   bool _is_alpha(char x);
   bool _is_digit(char x);
 public:

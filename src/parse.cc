@@ -78,6 +78,10 @@ void lexer_t::_next_char() {
     _last_char = 0;
 }
 
+bool lexer_t::_is_whitespace(char x) {
+  return x == ' ' || x == '\n' || x == '\r' || x == '\t';
+}
+
 bool lexer_t::_is_alpha(char x) {
   return (x >= 'a' && x <= 'z')
     || (x >= 'A' && x <= 'Z');
@@ -117,10 +121,11 @@ void lexer_t::from_string(const std::string &source) {
 /*
  * [ \n] skip;
  * [a-zA-Z][a-zA-Z0-9_]* identifier;
+ * [+-]?(([0-9]+\.[0-9]+)|([0-9]+\.)|(\.[0-9]+)|([0-9]+))([eE][+-]?[0-9]+)? number;
  */
 token_t* lexer_t::next_token() {
   while (1) {
-    if (_last_char == ' ' || _last_char == '\n')
+    if (_is_whitespace(_last_char))
       _next_char();
     if (_is_alpha(_last_char)) {
       std::string identifier = "";
@@ -135,6 +140,17 @@ token_t* lexer_t::next_token() {
       if (identifier == "of")
         return token_primitive(_line, _column, token_k::word_of);
       return token_identifier(_line, _column, identifier);
+    }
+    if (_last_char == '+' || _last_char == '-' || _is_digit(_last_char)
+        || _last_char == '.') {
+    }
+    if (_last_char == '*') {
+      _next_char();
+      return token_primitive(_line, _column, token_k::multiply);
+    }
+    if (_last_char == '/') {
+      _next_char();
+      return token_primitive(_line, _column, token_k::divide);
     }
     if (_last_char == '=') {
       _next_char();
