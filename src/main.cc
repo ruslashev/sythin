@@ -1,4 +1,5 @@
 #include "eval.hh"
+#include "parse.hh"
 #include "lang.hh"
 #include "utils.hh"
 #include "wav_writer.hh"
@@ -20,12 +21,26 @@ int main() {
   //  _ -> (add ((mult x) (pred y)) x)
   // ))
 
-  // two = 2
-  // sin_alias = sin
-  // double = (mult two)
-  // mult3 = (\ x . ( \y . ( \z . (mult ((mult x) y) z) )))
-  // mult2pi2 = (mult3 (double pi))
-  // main = (\ f . (λ t . (sin_alias ((mult2pi2 f) t))
+  std::string source =
+    "two = 2\n"
+    "sin_alias = sin\n"
+    "double = (mult two)\n"
+    "mult3 = (\\ x . ( \\y . ( \\z . (mult ((mult x) y) z))))\n"
+    "mult2pi2 = (mult3 (double pi))\n"
+    "main = (\\ f . (λ t . (sin_alias ((mult2pi2 f) t))\n";
+
+  printf("source \"%s\"\n", source.c_str());
+
+  lexer_t lexer;
+  lexer.from_string(source);
+
+  token_t *t;
+  do {
+    t = lexer.next_token();
+    t->pretty_print();
+  } while (t->kind != token_k::eof);
+
+#if 0
   term_t *program = term_program(new std::vector<term_t*>{
     term_definition("two",
       term_value(value_number(2))
@@ -124,5 +139,6 @@ int main() {
     delete scope_pair.second;
   program->scope = nullptr;
   delete program;
+#endif
 }
 
