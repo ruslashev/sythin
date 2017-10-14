@@ -33,7 +33,7 @@ token_t::~token_t() {
 
 void token_t::pretty_print() {
   if (kind == token_k::number)
-    printf("%s %4.2f\n", token_kind_to_string(kind).c_str(), number);
+    printf("%s %f\n", token_kind_to_string(kind).c_str(), number);
   else if (kind == token_k::identifier)
     printf("%s \"%s\"\n", token_kind_to_string(kind).c_str(), identifier->c_str());
   else
@@ -119,9 +119,10 @@ void lexer_t::from_string(const std::string &source) {
 }
 
 /*
- * [ \n] skip;
+ * [ \n\r\t] skip;
  * [a-zA-Z][a-zA-Z0-9_]* identifier;
- * [+-]?(([0-9]+\.[0-9]+)|([0-9]+\.)|(\.[0-9]+)|([0-9]+))([eE][+-]?[0-9]+)? number;
+ * [+-]?(([0-9]+\.[0-9]+)|([0-9]+\.)|(\.[0-9]+)|([0-9]+))([eE][+-]?[0-9]+)?
+ *   number;
  */
 token_t* lexer_t::next_token() {
   while (1) {
@@ -143,6 +144,48 @@ token_t* lexer_t::next_token() {
     }
     if (_last_char == '+' || _last_char == '-' || _is_digit(_last_char)
         || _last_char == '.') {
+      int sign = 1;
+      if (_last_char == '+')
+        _next_char();
+      else if (_last_char == '-') {
+        _next_char();
+        sign = -1;
+      }
+      if (_is_digit(_last_char)) {
+        double decimal = 0;
+        while (_is_digit(_last_char)) {
+          decimal *= 10.;
+          decimal += _last_char - '0';
+          _next_char();
+        }
+        if (_last_char == '.') {
+          _next_char();
+          if (_is_digit(_last_char)) {
+            double fraction = 0, mult = 10.;
+            while (_is_digit(_last_char)) {
+              fraction += (_last_char - '0') / mult;
+              mult *= 10.;
+              _next_char();
+            }
+            return token_number(_line, _column, sign * (decimal + fraction));
+          } else
+            return token_number(_line, _column, sign * decimal);
+        } else
+          return token_number(_line, _column, sign * decimal);
+      } else if (_last_char == '.') {
+        _next_char();
+        double fraction = 0, mult = 10.;
+        while (_is_digit(_last_char)) {
+          fraction += (_last_char - '0') / mult;
+          mult *= 10.;
+          _next_char();
+        }
+        return token_number(_line, _column, sign * fraction);
+      } else if (_last_char == '>' && sign == -1) {
+        _next_char();
+        return token_primitive(_line, _column, token_k::right_arrow);
+      } else
+        die("unexpected character in number at %d:%d", _line, _column);
     }
     if (_last_char == '*') {
       _next_char();

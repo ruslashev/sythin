@@ -27,7 +27,11 @@ int main() {
     "double = (mult two)\n"
     "mult3 = (\\ x . ( \\y . ( \\z . (mult ((mult x) y) z))))\n"
     "mult2pi2 = (mult3 (double pi))\n"
-    "main = (\\ f . (λ t . (sin_alias ((mult2pi2 f) t))\n";
+    "main = (\\ f . (λ t . (sin_alias ((mult2pi2 f) t))\n"
+    "0 1 1234 125 1614 "
+    "0.0 0.1 1.5 12.215 1252.125 12.13236 12.0 00.00 "
+    "0. 12. 125. 1. 215125. "
+    ".0 .125 .1256 .1 ";
 
   printf("source \"%s\"\n", source.c_str());
 
