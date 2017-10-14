@@ -1,4 +1,5 @@
 #include "parse.hh"
+#include "lemon_parser_tokens.hh"
 #include "utils.hh"
 #include <cmath>
 #include <fstream>
@@ -131,14 +132,15 @@ bool lexer_t::_try_lex_number_exponent(double *exponent) {
     return false;
 }
 
-lexer_t::lexer_t()
-  : _source("")
+lexer_t::lexer_t(const std::string &source)
+  : _source(source)
   , _last_char(' ') // hack to allow getting next token right away
   , _source_offset(0)
   , _line(1)
   , _column(1) {
 }
 
+#if 0
 void lexer_t::from_stdin() {
   std::cin >> std::noskipws;
   std::istream_iterator<char> it(std::cin), end;
@@ -157,6 +159,7 @@ void lexer_t::from_file(const std::string &filename) {
 void lexer_t::from_string(const std::string &source) {
   _source = source;
 }
+#endif
 
 /*
  * [ \n\r\t] skip;
@@ -264,5 +267,22 @@ token_t* lexer_t::next_token() {
     printf("unrecognized char '%c'\n", _last_char);
     _next_char();
   }
+}
+
+void* ParseAlloc(void* (*)(size_t));
+void Parse(void*, int, token_t*);
+void ParseFree(void*, void(*)(void*));
+
+term_t* parse_string(const std::string &source) {
+  lexer_t lexer(source);
+  void *lemon_parser = ParseAlloc(malloc);
+
+  token_t *t;
+  do {
+    t = lexer.next_token();
+    Parse(lemon_parser, TK_IDENTIFIER, 0);
+  } while (t->kind != token_k::eof);
+
+  ParseFree(lemon_parser, free);
 }
 

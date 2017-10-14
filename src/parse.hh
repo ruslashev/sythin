@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lang.hh"
 #include <string>
 
 enum class token_k {
@@ -51,10 +52,9 @@ class lexer_t {
   double _lex_number_fraction();
   bool _try_lex_number_exponent(double *exponent);
 public:
-  lexer_t();
-  void from_stdin();
-  void from_file(const std::string &filename);
-  void from_string(const std::string &source);
+  lexer_t(const std::string &source);
   token_t* next_token();
 };
+
+term_t* parse_string(const std::string &source);
 

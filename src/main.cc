@@ -27,27 +27,11 @@ int main() {
     "double = (mult two)\n"
     "mult3 = (\\ x . ( \\y . ( \\z . (mult ((mult x) y) z))))\n"
     "mult2pi2 = (mult3 (double pi))\n"
-    "main = (\\ f . (λ t . (sin_alias ((mult2pi2 f) t))\n"
-    "0 1 1234 125 1614 "
-    "0.0 0.1 1.5 12.215 1252.125 12.13236 12.0 00.00 "
-    "0. 12. 125. 1. 215125. "
-    ".0 .125 .1256 .1 "
-    "oi "
-    "0e0 1e1 1234e2 125e-1 1614e+0 "
-    "0.0e-0 0.1e1 1.5e0 12.215e3 1252.125e2 12.13236e-1 12.0e-10 00.00e-1 "
-    "0.e0 12.e-1 125.e+10 1.e+50 215125.e-6 "
-    ".0e0 .125e3 .1256e+4 .1e-1 ";
+    "main = (\\ f . (\\ t . (sin_alias ((mult2pi2 f) t))\n";
 
   printf("source \"%s\"\n", source.c_str());
 
-  lexer_t lexer;
-  lexer.from_string(source);
-
-  token_t *t;
-  do {
-    t = lexer.next_token();
-    t->pretty_print();
-  } while (t->kind != token_k::eof);
+  term_t *program = parse_string(source);
 
 #if 0
   term_t *program = term_program(new std::vector<term_t*>{
