@@ -1,5 +1,6 @@
 #include "parse.hh"
 #include "utils.hh"
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -91,6 +92,45 @@ bool lexer_t::_is_digit(char x) {
   return x >= '0' && x <= '9';
 }
 
+double lexer_t::_lex_number_decimal() {
+  double decimal = 0;
+  while (_is_digit(_last_char)) {
+    decimal *= 10.;
+    decimal += _last_char - '0';
+    _next_char();
+  }
+  return decimal;
+}
+
+double lexer_t::_lex_number_fraction() {
+  double fraction = 0, mult = 10.;
+  while (_is_digit(_last_char)) {
+    fraction += (_last_char - '0') / mult;
+    mult *= 10.;
+    _next_char();
+  }
+  return fraction;
+}
+
+bool lexer_t::_try_lex_number_exponent(double *exponent) {
+  if (_last_char == 'e' || _last_char == 'E') {
+    _next_char();
+    int sign = 1;
+    if (_last_char == '+')
+      _next_char();
+    else if (_last_char == '-') {
+      sign = -1;
+      _next_char();
+    }
+    if (_is_digit(_last_char)) {
+      *exponent = sign * _lex_number_decimal();
+      return true;
+    } else
+      die("unexpected character in number exponent at %d:%d", _line, _column);
+  } else
+    return false;
+}
+
 lexer_t::lexer_t()
   : _source("")
   , _last_char(' ') // hack to allow getting next token right away
@@ -152,35 +192,43 @@ token_t* lexer_t::next_token() {
         sign = -1;
       }
       if (_is_digit(_last_char)) {
-        double decimal = 0;
-        while (_is_digit(_last_char)) {
-          decimal *= 10.;
-          decimal += _last_char - '0';
-          _next_char();
-        }
+        double decimal = _lex_number_decimal();
         if (_last_char == '.') {
           _next_char();
           if (_is_digit(_last_char)) {
-            double fraction = 0, mult = 10.;
-            while (_is_digit(_last_char)) {
-              fraction += (_last_char - '0') / mult;
-              mult *= 10.;
-              _next_char();
-            }
-            return token_number(_line, _column, sign * (decimal + fraction));
-          } else
+            double fraction = _lex_number_fraction(), exponent;
+            if (_try_lex_number_exponent(&exponent))
+              return token_number(_line, _column, sign * ((decimal + fraction)
+                    * pow(10., exponent)));
+            else
+              return token_number(_line, _column, sign * (decimal + fraction));
+          } else {
+            double exponent;
+            if (_try_lex_number_exponent(&exponent))
+              return token_number(_line, _column, sign * decimal
+                  * pow(10., exponent));
+            else
+              return token_number(_line, _column, sign * decimal);
+          }
+        } else {
+          double exponent;
+          if (_try_lex_number_exponent(&exponent))
+            return token_number(_line, _column, sign * decimal
+                * pow(10., exponent));
+          else
             return token_number(_line, _column, sign * decimal);
-        } else
-          return token_number(_line, _column, sign * decimal);
+        }
       } else if (_last_char == '.') {
         _next_char();
-        double fraction = 0, mult = 10.;
-        while (_is_digit(_last_char)) {
-          fraction += (_last_char - '0') / mult;
-          mult *= 10.;
-          _next_char();
-        }
-        return token_number(_line, _column, sign * fraction);
+        if (_is_digit(_last_char)) {
+          double fraction = _lex_number_fraction(), exponent;
+          if (_try_lex_number_exponent(&exponent))
+            return token_number(_line, _column, sign * fraction
+                * pow(10., exponent));
+          else
+            return token_number(_line, _column, sign * fraction);
+        } else
+          return token_primitive(_line, _column, token_k::dot);
       } else if (_last_char == '>' && sign == -1) {
         _next_char();
         return token_primitive(_line, _column, token_k::right_arrow);
@@ -210,10 +258,6 @@ token_t* lexer_t::next_token() {
     if (_last_char == '\\') {
       _next_char();
       return token_primitive(_line, _column, token_k::lambda);
-    }
-    if (_last_char == '.') {
-      _next_char();
-      return token_primitive(_line, _column, token_k::dot);
     }
     if (_last_char == 0)
       return token_primitive(_line, _column, token_k::eof);

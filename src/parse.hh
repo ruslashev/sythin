@@ -47,6 +47,9 @@ class lexer_t {
   bool _is_whitespace(char x);
   bool _is_alpha(char x);
   bool _is_digit(char x);
+  double _lex_number_decimal();
+  double _lex_number_fraction();
+  bool _try_lex_number_exponent(double *exponent);
 public:
   lexer_t();
   void from_stdin();
