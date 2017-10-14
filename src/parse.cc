@@ -166,7 +166,7 @@ void lexer_t::from_string(const std::string &source) {
  */
 token_t* lexer_t::next_token() {
   while (1) {
-    if (_is_whitespace(_last_char))
+    while (_is_whitespace(_last_char))
       _next_char();
     if (_is_alpha(_last_char)) {
       std::string identifier = "";
