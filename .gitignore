@@ -2,4 +2,7 @@
 *.d
 sythin
 *.wav
+thirdparty/lemon
+thirdparty/lemon.c
+thirdparty/lempar.c
 
