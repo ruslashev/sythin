@@ -60,7 +60,7 @@ enum class term_k {
   application,
   identifier,
   case_of,
-  value // should be called 'value'
+  value
 };
 
 std::string term_kind_to_string(term_k kind);

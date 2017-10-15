@@ -3,28 +3,12 @@
 #include "lang.hh"
 #include <string>
 
-enum class token_k {
-  eof,
-  number,
-  identifier,
-  equals,
-  left_paren,
-  right_paren,
-  lambda,
-  dot,
-  word_case,
-  word_of,
-  right_arrow,
-  plus,
-  minus,
-  multiply,
-  divide
-};
+std::string read_file(const std::string &filename);
 
-std::string token_kind_to_string(token_k kind);
+const int TK_EOF = 0;
 
 struct token_t {
-  token_k kind;
+  int kind; // enumeration values used from generated file
   int line, column;
   union {
     double number;
@@ -34,7 +18,7 @@ struct token_t {
   void pretty_print();
 };
 
-token_t* token_primitive(int line, int column, token_k kind);
+token_t* token_primitive(int line, int column, int kind);
 token_t* token_number(int line, int column, double number);
 token_t* token_identifier(int line, int column, std::string identifier);
 
@@ -45,7 +29,8 @@ class lexer_t {
   int _line, _column;
 
   void _next_char();
-  bool _is_whitespace(char x);
+  bool _is_newline(char x);
+  bool _is_nonnl_whitespace(char x);
   bool _is_alpha(char x);
   bool _is_digit(char x);
   double _lex_number_decimal();

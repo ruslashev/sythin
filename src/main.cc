@@ -21,17 +21,15 @@ int main() {
   //  _ -> (add ((mult x) (pred y)) x)
   // ))
 
-  std::string source =
-    "two = 2\n"
-    "sin_alias = sin\n"
-    "double = (mult two)\n"
-    "mult3 = (\\ x . ( \\y . ( \\z . (mult ((mult x) y) z))))\n"
-    "mult2pi2 = (mult3 (double pi))\n"
-    "main = (\\ f . (\\ t . (sin_alias ((mult2pi2 f) t))\n";
+  std::string source = read_file("test.sth");
 
   printf("source \"%s\"\n", source.c_str());
 
   term_t *program = parse_string(source);
+  if (!program)
+    die("failed to parse");
+  puts("parsed program:");
+  program->pretty_print();
 
 #if 0
   term_t *program = term_program(new std::vector<term_t*>{

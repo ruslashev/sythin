@@ -1,0 +1,7 @@
+two = 2
+sin_alias = sin
+# double = (* two)
+# mult3 = (\\ x . ( \\y . ( \\z . (* ((* x) y) z))))
+# mult2pi2 = (mult3 (double pi))
+# main = (\\ f . (\\ t . (sin_alias ((mult2pi2 f) t)
+
