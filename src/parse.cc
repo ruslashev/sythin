@@ -20,6 +20,7 @@ std::string token_kind_to_string(int kind) {
     case TK_EOF:        return "TK_EOF";
     case TK_IDENTIFIER: return "TK_IDENTIFIER";
     case TK_EQUALS:     return "TK_EQUALS";
+    case TK_EOS:        return "TK_EOS";
     case TK_LPAREN:     return "TK_LPAREN";
     case TK_RPAREN:     return "TK_RPAREN";
     case TK_NUMBER:     return "TK_NUMBER";
@@ -307,6 +308,7 @@ term_t* parse_string(const std::string &source) {
   token_t *t;
   do {
     t = lexer.next_token();
+    printf("-> ");
     t->pretty_print();
     Parse(lemon_parser, t->kind, t, &program);
   } while (t->kind != TK_EOF);

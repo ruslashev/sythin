@@ -4,32 +4,40 @@
 }
 
 %token_type { token_t* }
-// %default_type { term_t* }
+%default_type { term_t* }
 %extra_argument { term_t **root }
 
-%type program { term_t* }
-program ::= definition_list(def_list). { *root = term_program(def_list); puts("woash"); }
+program ::= definition_list(def_list). { *root = term_program(def_list); }
 
 %type definition_list { std::vector<term_t*>* }
-definition_list(out) ::= definition_list definition(def). { out->push_back(def); puts("new itemm"); }
-definition_list(out) ::= definition(def). { out = new std::vector<term_t*>; out->push_back(def); puts("last deff"); }
+definition_list(d) ::= definition_list definition(def). {
+  d->push_back(def);
+}
+definition_list(d) ::= definition(def). {
+  d = new std::vector<term_t*>;
+  d->push_back(def);
+}
 
-%type definition { term_t* }
-definition(out) ::= TK_IDENTIFIER(name) TK_EQUALS body(def_body) TK_EOS. { out = term_definition(*name->identifier, def_body); printf("ma nam defff\n"); }
+definition(d) ::= TK_IDENTIFIER(name) TK_EQUALS body(def_body) TK_EOS. {
+  d = term_definition(*name->identifier, def_body);
+}
 
-%type body { term_t* }
-body ::= application.
-body(out) ::= TK_IDENTIFIER(ident). { out = term_identifier(*ident->identifier); printf("identt %s\n", ident->identifier->c_str()); }
+body(b) ::= application(a). { b = a; }
+body(b) ::= identifier(i). { b = i; }
 body ::= case_of.
 body(b) ::= value(v). { b = term_value(v); }
 
-application ::= TK_LPAREN app_lambda app_parameter TK_RPAREN.
+application(a) ::= TK_LPAREN app_lambda(lambda) app_parameter(parameter) TK_RPAREN. {
+  a = term_application(lambda, parameter);
+}
 
 app_lambda ::= body.
 
 app_parameter ::= body.
 
-identifier ::= TK_IDENTIFIER.
+identifier(i) ::= TK_IDENTIFIER(token). {
+  i = term_identifier(*token->identifier);
+}
 
 case_of ::= TK_WORD_CASE case_value TK_WORD_OF case_statement_list.
 
@@ -41,16 +49,21 @@ case_statement_list ::= case_statement.
 case_statement ::= TK_RARROW.
 
 %type value { value_t* }
-value(v) ::= TK_NUMBER(number_token). { v = value_number(number_token->number); printf("value numm %f\n", number_token->number); }
-value ::= lambda.
-value ::= builtin.
+value(v) ::= number(n). { v = n; }
+value(v) ::= lambda(l). { v = l; }
+value(v) ::= builtin(b). { v = value_builtin(b); }
 
-lambda ::= TK_LPAREN TK_LAMBDA lambda_arg TK_DOT lambda_body TK_RPAREN.
+%type number { value_t* }
+number(n) ::= TK_NUMBER(token). {
+  n = value_number(token->number);
+}
 
-lambda_arg ::= identifier.
+%type lambda { value_t* }
+lambda(l) ::= TK_LPAREN TK_LAMBDA TK_IDENTIFIER(token_arg) TK_DOT body(lam_body) TK_RPAREN. {
+  l = value_lambda(*token_arg->identifier, lam_body);
+}
 
-lambda_body ::= body.
-
-builtin ::= TK_MULT.
-builtin ::= TK_SIN.
+%type builtin { builtin_t* }
+builtin(b) ::= TK_MULT. { b = builtin_mult(); }
+builtin(b) ::= TK_SIN. { b = builtin_sin(); }
 
