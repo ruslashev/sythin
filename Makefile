@@ -27,7 +27,7 @@ thirdparty/lemon:
 	@echo "Compiling thirdparty/lemon"
 	@$(CC) thirdparty/lemon.c -o thirdparty/lemon
 
-src/lemon_parser.cc: thirdparty/lemon
+src/lemon_parser.cc: thirdparty/lemon src/lemon_parser.y
 	@echo "Generating parser"
 	@thirdparty/lemon src/lemon_parser.y \
 		&& mv src/lemon_parser.c src/lemon_parser.cc \
