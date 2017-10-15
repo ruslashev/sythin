@@ -26,14 +26,11 @@ body(b) ::= application(a). { b = a; }
 body(b) ::= identifier(i). { b = i; }
 body ::= case_of.
 body(b) ::= value(v). { b = term_value(v); }
+body(b) ::= TK_LPAREN body(par_body) TK_RPAREN. { b = par_body; }
 
-application(a) ::= TK_LPAREN app_lambda(lambda) app_parameter(parameter) TK_RPAREN. {
+application(a) ::= TK_LPAREN body(lambda) body(parameter) TK_RPAREN . {
   a = term_application(lambda, parameter);
 }
-
-app_lambda ::= body.
-
-app_parameter ::= body.
 
 identifier(i) ::= TK_IDENTIFIER(token). {
   i = term_identifier(*token->identifier);
@@ -43,10 +40,24 @@ case_of ::= TK_WORD_CASE case_value TK_WORD_OF case_statement_list.
 
 case_value ::= body.
 
-case_statement_list ::= case_statement_list case_statement.
-case_statement_list ::= case_statement.
+%type case_statement_list { std::vector<term_t::case_statement>* }
+case_statement_list(c) ::= case_statement_list case_statement(case_stmt). {
+  c->push_back(*case_stmt);
+  delete case_stmt;
+}
+case_statement_list(c) ::= case_statement(case_stmt). {
+  c = new std::vector<term_t::case_statement>;
+  c->push_back(*case_stmt);
+  delete case_stmt;
+}
 
-case_statement ::= TK_RARROW.
+%type case_statement { term_t::case_statement* }
+case_statement(c) ::= body(case_stament_value) TK_RARROW
+    body(case_stament_result) TK_EOS. {
+  c = new term_t::case_statement;
+  c->value = case_stament_value;
+  c->result = case_stament_result;
+}
 
 %type value { value_t* }
 value(v) ::= number(n). { v = n; }
@@ -59,7 +70,8 @@ number(n) ::= TK_NUMBER(token). {
 }
 
 %type lambda { value_t* }
-lambda(l) ::= TK_LPAREN TK_LAMBDA TK_IDENTIFIER(token_arg) TK_DOT body(lam_body) TK_RPAREN. {
+lambda(l) ::= TK_LPAREN TK_LAMBDA TK_IDENTIFIER(token_arg) TK_DOT body(lam_body)
+    TK_RPAREN. {
   l = value_lambda(*token_arg->identifier, lam_body);
 }
 

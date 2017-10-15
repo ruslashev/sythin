@@ -30,9 +30,9 @@ thirdparty/lemon:
 src/lemon_parser.cc: thirdparty/lemon src/lemon_parser.y
 	@echo "Generating parser"
 	@thirdparty/lemon src/lemon_parser.y \
-		&& mv src/lemon_parser.c src/lemon_parser.cc \
-		&& mv src/lemon_parser.h src/lemon_parser_tokens.hh \
-		&& rm src/lemon_parser.out
+		; mv src/lemon_parser.c src/lemon_parser.cc \
+		; mv src/lemon_parser.h src/lemon_parser_tokens.hh
+		# ; rm src/lemon_parser.out
 
 .objs/%.o: src/%.cc
 	@echo "Compiling $<"

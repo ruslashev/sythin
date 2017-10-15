@@ -308,8 +308,6 @@ term_t* parse_string(const std::string &source) {
   token_t *t;
   do {
     t = lexer.next_token();
-    printf("-> ");
-    t->pretty_print();
     Parse(lemon_parser, t->kind, t, &program);
   } while (t->kind != TK_EOF);
   ParseFree(lemon_parser, free);
