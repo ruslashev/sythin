@@ -41,7 +41,17 @@ public:
   token_t* next_token();
 };
 
+struct yyunion_t {
+  union {
+    token_t *token;
+    term_t *term;
+    std::vector<term_t*> *term_list;
+    value_t *value;
+    builtin_t *builtin;
+  };
+};
+
 term_t* parse_string(const std::string &source);
-int yylex(token_t **yylval, lexer_t *lexer);
+int yylex(yyunion_t *yylval, lexer_t *lexer);
 void yyerror(lexer_t *lexer, term_t **root, const char *error);
 

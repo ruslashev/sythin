@@ -303,11 +303,9 @@ term_t* parse_string(const std::string &source) {
   return root;
 }
 
-int yylex(token_t **yylval, lexer_t *lexer) {
+int yylex(yyunion_t *yylval, lexer_t *lexer) {
   token_t *t = lexer->next_token();
-  printf("-> ");
-  t->pretty_print();
-  *yylval = t;
+  yylval->token = t;
   return t->kind;
 }
 
