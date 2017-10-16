@@ -22,23 +22,24 @@ definition(d) ::= TK_IDENTIFIER(name) TK_EQUALS body(def_body) TK_EOS. {
   d = term_definition(*name->identifier, def_body);
 }
 
-body(b) ::= application(a). { b = a; }
-body(b) ::= identifier(i). { b = i; }
-body ::= case_of.
-body(b) ::= value(v). { b = term_value(v); }
-body(b) ::= TK_LPAREN body(par_body) TK_RPAREN. { b = par_body; }
-
-application(a) ::= TK_LPAREN body(lambda) body(parameter) TK_RPAREN . {
-  a = term_application(lambda, parameter);
+body(b) ::= other(lambda) other(parameter). {
+  b = term_application(lambda, parameter);
 }
+body(b) ::= other(o). { b = o; }
+
+other(o) ::= identifier(i). { o = i; }
+other(o) ::= case_of(c). { o = c; }
+other(o) ::= value(v). { o = term_value(v); }
+other(o) ::= TK_LPAREN body(par_body) TK_RPAREN. { o = par_body; }
 
 identifier(i) ::= TK_IDENTIFIER(token). {
   i = term_identifier(*token->identifier);
 }
 
-case_of ::= TK_WORD_CASE case_value TK_WORD_OF case_statement_list.
-
-case_value ::= body.
+case_of(c) ::= TK_WORD_CASE body(case_value) TK_WORD_OF
+    case_statement_list(statements) TK_WORD_END. {
+  c = term_case_of(case_value, statements);
+}
 
 %type case_statement_list { std::vector<term_t::case_statement>* }
 case_statement_list(c) ::= case_statement_list case_statement(case_stmt). {
