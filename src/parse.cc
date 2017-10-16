@@ -1,5 +1,5 @@
 #include "parse.hh"
-#include "lemon_parser_tokens.hh"
+#include "bison_parser_tokens.hh"
 #include "utils.hh"
 #include <cmath>
 #include <fstream>
@@ -296,22 +296,22 @@ token_t* lexer_t::next_token() {
   }
 }
 
-void* ParseAlloc(void* (*)(size_t));
-void Parse(void*, int, token_t*, term_t**);
-void ParseFree(void*, void(*)(void*));
-
 term_t* parse_string(const std::string &source) {
-  term_t *program = nullptr;
   lexer_t lexer(source);
-  void *lemon_parser = ParseAlloc(malloc);
+  term_t *root = nullptr;
+  yyparse(&lexer, &root);
+  return root;
+}
 
-  token_t *t;
-  do {
-    t = lexer.next_token();
-    Parse(lemon_parser, t->kind, t, &program);
-  } while (t->kind != TK_EOF);
-  ParseFree(lemon_parser, free);
+int yylex(token_t **yylval, lexer_t *lexer) {
+  token_t *t = lexer->next_token();
+  printf("-> ");
+  t->pretty_print();
+  *yylval = t;
+  return t->kind;
+}
 
-  return program;
+void yyerror(lexer_t *lexer, term_t **root, const char *error) {
+  printf("parsing error: %s\n", error);
 }
 

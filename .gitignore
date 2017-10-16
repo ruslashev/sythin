@@ -2,9 +2,6 @@
 *.d
 sythin
 *.wav
-thirdparty/lemon
-thirdparty/lemon.c
-thirdparty/lempar.c
-src/lemon_parser.cc
-src/lemon_parser_tokens.hh
+src/bison_parser.cc
+src/bison_parser_tokens.hh
 

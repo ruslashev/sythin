@@ -42,4 +42,6 @@ public:
 };
 
 term_t* parse_string(const std::string &source);
+int yylex(token_t **yylval, lexer_t *lexer);
+void yyerror(lexer_t *lexer, term_t **root, const char *error);
 

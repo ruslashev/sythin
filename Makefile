@@ -9,7 +9,7 @@ CXX = g++
 BIN = sythin
 
 CC_OBJS = $(patsubst src/%.cc,.objs/%.o, $(shell find src/ -type f -iname '*.cc'))
-OBJS = .objs/lemon_parser.o $(CC_OBJS) $(CPP_OBJS)
+OBJS = .objs/bison_parser.o $(CC_OBJS) $(CPP_OBJS)
 DEPS = $(OBJS:.o=.d)
 CXXFLAGS = $(warnings) $(flags)
 LDFLAGS = $(libraries)
@@ -23,16 +23,11 @@ $(BIN): $(OBJS)
 	@echo "Linking to $@"
 	@$(CXX) -o $@ $^ $(LDFLAGS)
 
-thirdparty/lemon:
-	@echo "Compiling thirdparty/lemon"
-	@$(CC) thirdparty/lemon.c -o thirdparty/lemon
-
-src/lemon_parser.cc: thirdparty/lemon src/lemon_parser.y
+src/bison_parser.cc: src/bison_parser.y
 	@echo "Generating parser"
-	@thirdparty/lemon src/lemon_parser.y \
-		; mv src/lemon_parser.c src/lemon_parser.cc \
-		; mv src/lemon_parser.h src/lemon_parser_tokens.hh
-		# ; rm src/lemon_parser.out
+	@bison src/bison_parser.y \
+	  && mv bison_parser.cc src \
+	  && mv bison_parser_tokens.hh src
 
 .objs/%.o: src/%.cc
 	@echo "Compiling $<"
@@ -50,7 +45,7 @@ callgrind: $(BIN)
 
 .PHONY : clean
 clean:
-	@rm -f $(BIN) $(OBJS) $(DEPS) src/lemon_parser.cc src/lemon_parser_tokens.hh
+	@rm -f $(BIN) $(OBJS) $(DEPS) src/bison_parser.cc src/bison_parser_tokens.hh
 
 -include $(DEPS)
 
