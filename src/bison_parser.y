@@ -15,7 +15,7 @@
 %token <token> TK_WORD_OF TK_RARROW TK_NUMBER TK_LAMBDA TK_DOT TK_MULT TK_SIN
 %token <token> TK_WORD_END
 
-%type <term> program definition body identifier case_of;
+%type <term> program definition body application identifier case_of;
 %type <term_list> definition_list;
 %type <case_statement_list> case_statement_list;
 %type <case_statement> case_statement;
@@ -41,19 +41,21 @@ definition : TK_IDENTIFIER TK_EQUALS body TK_EOS {
            }
            | TK_EOS { $$ = nullptr; };
 
-body: TK_LPAREN body body TK_RPAREN { $$ = term_application($2, $3); }
+body: application { $$ = $1; }
     | identifier { $$ = $1; }
-    | value { $$ = term_value($1); }
     | case_of { $$ = $1; }
+    | value { $$ = term_value($1); }
     | TK_LPAREN body TK_RPAREN { $$ = $2; };
 
-/* body : other other */
-/*      | other; */
+application: TK_LPAREN body body TK_RPAREN { $$ = term_application($2, $3); };
 
-/* other: identifier */
-/*      | value */
-/*      | case_of */
-/*      | TK_LPAREN body TK_RPAREN; */
+/* body : other other { $$ = term_application($1, $2); } */
+/*      | other { $$ = $1; }; */
+
+/* other : identifier { $$ = $1; } */
+/*       | value { $$ = term_value($1); } */
+/*       | case_of { $$ = $1; } */
+/*       | TK_LPAREN body TK_RPAREN { $$ = $2; }; */
 
 identifier : TK_IDENTIFIER { $$ = term_identifier(*$1->identifier); };
 
