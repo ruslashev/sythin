@@ -17,6 +17,8 @@
 
 %type <term> program definition body identifier case_of;
 %type <term_list> definition_list;
+%type <case_statement_list> case_statement_list;
+%type <case_statement> case_statement;
 %type <value> value number lambda;
 %type <builtin> builtin;
 
@@ -56,11 +58,22 @@ body: TK_LPAREN body body TK_RPAREN { $$ = term_application($2, $3); }
 identifier : TK_IDENTIFIER { $$ = term_identifier(*$1->identifier); };
 
 case_of : TK_WORD_CASE body TK_WORD_OF case_statement_list TK_WORD_END {
-          $$ = term_case_of(nullptr, nullptr);
+          $$ = term_case_of($2, $4);
         };
-case_statement_list : case_statement_list case_statement
-                    | case_statement;
-case_statement : body TK_RARROW body TK_EOS;
+
+case_statement_list : case_statement_list case_statement {
+                      $$->push_back(*$2);
+                      delete $2;
+                    }
+                    | case_statement {
+                      $$ = new std::vector<term_t::case_statement>;
+                      $$->push_back(*$1);
+                      delete $1;
+                    };
+
+case_statement : body TK_RARROW body TK_EOS {
+                 $$ = new term_t::case_statement { $1, $3 };
+               };
 
 value : number { $$ = $1; }
       | lambda { $$ = $1; }

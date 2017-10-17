@@ -23,7 +23,7 @@ token_t* token_number(int line, int column, double number);
 token_t* token_identifier(int line, int column, std::string identifier);
 
 class lexer_t {
-  std::string _source;
+  std::string _source, _filename;
   char _last_char;
   size_t _source_offset;
   int _line, _column;
@@ -39,6 +39,7 @@ class lexer_t {
 public:
   lexer_t(const std::string &source);
   token_t* next_token();
+  std::string get_location();
 };
 
 struct yyunion_t {
@@ -46,6 +47,8 @@ struct yyunion_t {
     token_t *token;
     term_t *term;
     std::vector<term_t*> *term_list;
+    std::vector<term_t::case_statement> *case_statement_list;
+    term_t::case_statement *case_statement;
     value_t *value;
     builtin_t *builtin;
   };

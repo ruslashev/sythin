@@ -150,6 +150,7 @@ bool lexer_t::_try_lex_number_exponent(double *exponent) {
 
 lexer_t::lexer_t(const std::string &source)
   : _source(source)
+  , _filename("<string>")
   , _last_char(' ') // hack to allow getting next token right away
   , _source_offset(0)
   , _line(1)
@@ -296,6 +297,10 @@ token_t* lexer_t::next_token() {
   }
 }
 
+std::string lexer_t::get_location() {
+  return _filename + ":" + std::to_string(_line) + ":" + std::to_string(_column);
+}
+
 term_t* parse_string(const std::string &source) {
   lexer_t lexer(source);
   term_t *root = nullptr;
@@ -310,6 +315,6 @@ int yylex(yyunion_t *yylval, lexer_t *lexer) {
 }
 
 void yyerror(lexer_t *lexer, term_t **root, const char *error) {
-  printf("parsing error: %s\n", error);
+  printf("%s: %s\n", lexer->get_location().c_str(), error);
 }
 
