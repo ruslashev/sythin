@@ -6,130 +6,43 @@
 #include <cmath>
 
 int main() {
-  // these functions are unused (and builtins are used instead) because
-  // they blow up stack becase of level of recursion of evaluate_term()s
-  // etc. when used on large numbers
-
-  // add = (\x . (\y .
-  // case y of
-  //  0 -> x
-  //  _ -> (succ (add x (pred y)))
-  // ))
-  // mult = (\x . (\y .
-  // case y of
-  //  0 -> x
-  //  _ -> (add ((mult x) (pred y)) x)
-  // ))
-
   std::string source = read_file("test.sth");
-
-  printf("source \"%s\"\n", source.c_str());
 
   term_t *program = parse_string(source);
   if (!program)
-    die("failed to parse");
+    exit(1);
+
   puts("parsed program:");
   program->pretty_print();
 
-#if 0
-  term_t *program = term_program(new std::vector<term_t*>{
-    term_definition("two",
-      term_value(value_number(2))
-    ),
-    term_definition("sin_alias",
-      term_value(value_builtin(builtin_sin()))
-    ),
-    term_definition("double",
-      term_application(
-        term_value(value_builtin(builtin_mult())),
-        term_identifier("two")
-      )
-    ),
-    term_definition("mult3",
-      term_value(value_lambda("x",
-        term_value(value_lambda("y",
-          term_value(value_lambda("z",
-            term_application(
-              term_application(
-                term_value(value_builtin(builtin_mult())),
-                term_application(
-                  term_application(
-                    term_value(value_builtin(builtin_mult())),
-                    term_identifier("x")
-                  ),
-                  term_identifier("y")
-                )
-              ),
-              term_identifier("z")
-            )
-          ))
-        ))
-      ))
-    ),
-    term_definition("mult2pi2",
-      term_application(
-        term_identifier("mult3"),
-        term_application(
-          term_identifier("double"),
-          term_identifier("pi")
-        )
-      )
-    ),
-    term_definition("main",
-      term_value(value_lambda("f",
-        term_value(value_lambda("t",
-          term_application(
-            term_identifier("sin_alias"),
-            term_application(
-              term_application(
-                term_identifier("mult2pi2"),
-                term_identifier("f")
-              ),
-              term_identifier("t")
-            )
-          )
-        ))
-      ))
-    )
-  });
-  scope_t global_scope {
+  program->scope = new scope_t {
     { "pi", value_number(M_PI) }
   };
-  program->scope = &global_scope;
-
-  program->pretty_print();
 
   std::vector<message_t> messages;
   validate_top_level_functions(program, &messages);
   for (const message_t &message : messages)
     printf("%s: %s\n", message_kind_to_string(message.kind).c_str()
         , message.content.c_str());
-  assertf(messages_contain_no_errors(messages));
+  if (!messages_contain_no_errors(messages))
+    exit(1);
 
   samples_t samples = { std::vector<uint16_t>(), std::vector<uint16_t>() };
-
-  double amplitude = 32760;
-  double sample_rate = 44100;
-  double frequency = 261.626; // C4
-  double seconds = 2.5;
+  double amplitude = 32760, sample_rate = 44100, frequency = 261.626 // C4
+    , seconds = 2.5;
 
   uint64_t num_samples = sample_rate * seconds;
   double inv_sample_rate = 1. / (double)sample_rate;
   for (uint64_t i = 0; i < num_samples; i++) {
-    double f = frequency;
-    double t = (double)i * inv_sample_rate;
-    double value = evaluate_program(program, f, t);
-    uint16_t w_value = amplitude * value;
+    double f = frequency, t = (double)i * inv_sample_rate
+      , value = evaluate_program(program, f, t);
+    uint16_t w_value = std::round(amplitude * value);
     samples[0].push_back(w_value);
     samples[1].push_back(w_value);
   }
 
   write_wav("out.wav", sample_rate, samples);
 
-  for (const auto &scope_pair : global_scope)
-    delete scope_pair.second;
-  program->scope = nullptr;
   delete program;
-#endif
 }
 

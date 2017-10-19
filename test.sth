@@ -1,3 +1,19 @@
+# these functions are unused (and builtins are used instead) because
+# they blow up stack becase of level of recursion of evaluate_term()s
+# etc. when used on large numbers
+add = (\x . (\y .
+  case y of
+    0 -> x,
+    _ -> (succ ((add x) (pred y)))
+  end
+))
+mult = (\x . (\y .
+  case y of
+    0 -> x,
+    _ -> ((add ((mult x) (pred y))) x)
+  end
+))
+
 two = 2
 sin_alias = sin
 double = (* two)

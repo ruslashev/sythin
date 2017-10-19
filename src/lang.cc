@@ -173,14 +173,16 @@ void term_t::pretty_print() const {
       printf("case ");
       case_of.value->pretty_print();
       printf(" of ");
-      for (const case_statement &statement : *case_of.statements) {
+      for (size_t i = 0; i < case_of.statements->size(); ++i) {
+        const case_statement &statement = case_of.statements->at(i);
         if (statement.value)
           statement.value->pretty_print();
         else
           printf("_");
         printf(" -> ");
         statement.result->pretty_print();
-        printf("; ");
+        if (i != case_of.statements->size() - 1)
+          printf(", ");
       }
       break;
     case term_k::value:

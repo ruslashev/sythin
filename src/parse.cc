@@ -83,11 +83,13 @@ token_t* token_identifier(int line, int column, std::string identifier) {
 void lexer_t::_next_char() {
   if (_source_offset <= _source.length()) {
     _last_char = _source[_source_offset++];
+    _line = _next_line;
+    _column = _next_column;
     if (_last_char == '\n') {
-      ++_line;
-      _column = 1;
+      ++_next_line;
+      _next_column = 1;
     } else
-      ++_column;
+      ++_next_column;
   } else
     _last_char = 0;
 }
@@ -153,6 +155,8 @@ lexer_t::lexer_t(const std::string &source)
   , _filename("<string>")
   , _last_char(' ') // hack to allow getting next token right away
   , _source_offset(0)
+  , _next_line(1)
+  , _next_column(1)
   , _line(1)
   , _column(1) {
 }
@@ -186,7 +190,7 @@ void lexer_t::from_string(const std::string &source) {
  */
 token_t* lexer_t::next_token() {
   while (1) {
-    while (_is_nonnl_whitespace(_last_char))
+    while (_is_nonnl_whitespace(_last_char) || _is_newline(_last_char))
       _next_char();
     if (_is_alpha(_last_char)) {
       std::string identifier = "";
@@ -196,10 +200,14 @@ token_t* lexer_t::next_token() {
         identifier += _last_char;
         _next_char();
       }
+      if (identifier == "sin")
+        return token_primitive(_line, _column, TK_SIN);
       if (identifier == "case")
         return token_primitive(_line, _column, TK_WORD_CASE);
       if (identifier == "of")
         return token_primitive(_line, _column, TK_WORD_OF);
+      if (identifier == "end")
+        return token_primitive(_line, _column, TK_WORD_END);
       return token_identifier(_line, _column, identifier);
     }
     if (_last_char == '+' || _last_char == '-' || _is_digit(_last_char)
@@ -259,10 +267,6 @@ token_t* lexer_t::next_token() {
       _next_char();
       return token_primitive(_line, _column, TK_MULT);
     }
-    // if (_last_char == '/') {
-    //   _next_char();
-    //   return token_primitive(_line, _column, TK_DIVIDE);
-    // }
     if (_last_char == '=') {
       _next_char();
       return token_primitive(_line, _column, TK_EQUALS);
@@ -286,9 +290,13 @@ token_t* lexer_t::next_token() {
       _next_char();
       continue;
     }
-    if (_is_newline(_last_char) || _last_char == ',') {
+    if (_last_char == ',') {
       _next_char();
       return token_primitive(_line, _column, TK_EOS);
+    }
+    if (_last_char == '_') {
+      _next_char();
+      return token_primitive(_line, _column, TK_ANY);
     }
     if (_last_char == 0)
       return token_primitive(_line, _column, TK_EOF);

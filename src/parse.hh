@@ -26,7 +26,7 @@ class lexer_t {
   std::string _source, _filename;
   char _last_char;
   size_t _source_offset;
-  int _line, _column;
+  int _next_line, _next_column, _line, _column;
 
   void _next_char();
   bool _is_newline(char x);
