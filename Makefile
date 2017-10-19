@@ -29,7 +29,7 @@ src/bison_parser.cc: src/bison_parser.y
 	  && mv bison_parser.cc src \
 	  && mv bison_parser_tokens.hh src
 
-.objs/%.o: src/%.cc
+.objs/%.o: src/%.cc src/bison_parser.cc
 	@echo "Compiling $<"
 	@$(CXX) -MMD -MP -c -o $@ $< $(CXXFLAGS)
 
