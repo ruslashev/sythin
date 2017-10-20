@@ -125,8 +125,8 @@ term_t::~term_t() {
       break;
   }
   if (scope != nullptr) {
-    // for (const auto &scope_pair : *scope)
-    //   delete scope_pair.second;
+    for (const auto &scope_pair : *scope)
+      delete scope_pair.second;
     delete scope;
     scope = nullptr;
   }

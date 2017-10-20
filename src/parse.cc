@@ -54,32 +54,6 @@ void token_t::pretty_print() {
     printf("%s\n", token_kind_to_string(kind).c_str());
 }
 
-token_t* token_primitive(int line, int column, int kind) {
-  token_t *t = new token_t;
-  t->kind = kind;
-  t->line = line;
-  t->column = column;
-  return t;
-}
-
-token_t* token_number(int line, int column, double number) {
-  token_t *t = new token_t;
-  t->kind = TK_NUMBER;
-  t->line = line;
-  t->column = column;
-  t->number = number;
-  return t;
-}
-
-token_t* token_identifier(int line, int column, std::string identifier) {
-  token_t *t = new token_t;
-  t->kind = TK_IDENTIFIER;
-  t->line = line;
-  t->column = column;
-  t->identifier = new std::string(identifier);
-  return t;
-}
-
 void lexer_t::_next_char() {
   if (_source_offset <= _source.length()) {
     _last_char = _source[_source_offset++];
@@ -150,6 +124,35 @@ bool lexer_t::_try_lex_number_exponent(double *exponent) {
     return false;
 }
 
+token_t* lexer_t::_token_primitive(int kind) {
+  token_t *t = new token_t;
+  _allocated_tokens.push_back(t);
+  t->kind = kind;
+  t->line = _line;
+  t->column = _column;
+  return t;
+}
+
+token_t* lexer_t::_token_number(double number) {
+  token_t *t = new token_t;
+  _allocated_tokens.push_back(t);
+  t->kind = TK_NUMBER;
+  t->line = _line;
+  t->column = _column;
+  t->number = number;
+  return t;
+}
+
+token_t* lexer_t::_token_identifier(std::string identifier) {
+  token_t *t = new token_t;
+  _allocated_tokens.push_back(t);
+  t->kind = TK_IDENTIFIER;
+  t->line = _line;
+  t->column = _column;
+  t->identifier = new std::string(identifier);
+  return t;
+}
+
 lexer_t::lexer_t(const std::string &source)
   : _source(source)
   , _filename("<string>")
@@ -159,6 +162,11 @@ lexer_t::lexer_t(const std::string &source)
   , _next_column(1)
   , _line(1)
   , _column(1) {
+}
+
+lexer_t::~lexer_t() {
+  for (const token_t *const token : _allocated_tokens)
+    delete token;
 }
 
 #if 0
@@ -201,14 +209,14 @@ token_t* lexer_t::next_token() {
         _next_char();
       }
       if (identifier == "sin")
-        return token_primitive(_line, _column, TK_SIN);
+        return _token_primitive(TK_SIN);
       if (identifier == "case")
-        return token_primitive(_line, _column, TK_WORD_CASE);
+        return _token_primitive(TK_WORD_CASE);
       if (identifier == "of")
-        return token_primitive(_line, _column, TK_WORD_OF);
+        return _token_primitive(TK_WORD_OF);
       if (identifier == "end")
-        return token_primitive(_line, _column, TK_WORD_END);
-      return token_identifier(_line, _column, identifier);
+        return _token_primitive(TK_WORD_END);
+      return _token_identifier(identifier);
     }
     if (_last_char == '+' || _last_char == '-' || _is_digit(_last_char)
         || _last_char == '.') {
@@ -226,62 +234,62 @@ token_t* lexer_t::next_token() {
           if (_is_digit(_last_char)) {
             double fraction = _lex_number_fraction(), exponent;
             if (_try_lex_number_exponent(&exponent))
-              return token_number(_line, _column, sign * ((decimal + fraction)
+              return _token_number(sign * ((decimal + fraction)
                     * pow(10., exponent)));
             else
-              return token_number(_line, _column, sign * (decimal + fraction));
+              return _token_number(sign * (decimal + fraction));
           } else {
             double exponent;
             if (_try_lex_number_exponent(&exponent))
-              return token_number(_line, _column, sign * decimal
+              return _token_number(sign * decimal
                   * pow(10., exponent));
             else
-              return token_number(_line, _column, sign * decimal);
+              return _token_number(sign * decimal);
           }
         } else {
           double exponent;
           if (_try_lex_number_exponent(&exponent))
-            return token_number(_line, _column, sign * decimal
+            return _token_number(sign * decimal
                 * pow(10., exponent));
           else
-            return token_number(_line, _column, sign * decimal);
+            return _token_number(sign * decimal);
         }
       } else if (_last_char == '.') {
         _next_char();
         if (_is_digit(_last_char)) {
           double fraction = _lex_number_fraction(), exponent;
           if (_try_lex_number_exponent(&exponent))
-            return token_number(_line, _column, sign * fraction
+            return _token_number(sign * fraction
                 * pow(10., exponent));
           else
-            return token_number(_line, _column, sign * fraction);
+            return _token_number(sign * fraction);
         } else
-          return token_primitive(_line, _column, TK_DOT);
+          return _token_primitive(TK_DOT);
       } else if (_last_char == '>' && sign == -1) {
         _next_char();
-        return token_primitive(_line, _column, TK_RARROW);
+        return _token_primitive(TK_RARROW);
       } else
         die("unexpected character in number at %d:%d", _line, _column);
     }
     if (_last_char == '*') {
       _next_char();
-      return token_primitive(_line, _column, TK_MULT);
+      return _token_primitive(TK_MULT);
     }
     if (_last_char == '=') {
       _next_char();
-      return token_primitive(_line, _column, TK_EQUALS);
+      return _token_primitive(TK_EQUALS);
     }
     if (_last_char == '(') {
       _next_char();
-      return token_primitive(_line, _column, TK_LPAREN);
+      return _token_primitive(TK_LPAREN);
     }
     if (_last_char == ')') {
       _next_char();
-      return token_primitive(_line, _column, TK_RPAREN);
+      return _token_primitive(TK_RPAREN);
     }
     if (_last_char == '\\') {
       _next_char();
-      return token_primitive(_line, _column, TK_LAMBDA);
+      return _token_primitive(TK_LAMBDA);
     }
     if (_last_char == '#') {
       _next_char();
@@ -292,14 +300,14 @@ token_t* lexer_t::next_token() {
     }
     if (_last_char == ',') {
       _next_char();
-      return token_primitive(_line, _column, TK_EOS);
+      return _token_primitive(TK_EOS);
     }
     if (_last_char == '_') {
       _next_char();
-      return token_primitive(_line, _column, TK_ANY);
+      return _token_primitive(TK_ANY);
     }
     if (_last_char == 0)
-      return token_primitive(_line, _column, TK_EOF);
+      return _token_primitive(TK_EOF);
     printf("unrecognized char '%c'\n", _last_char);
     _next_char();
   }

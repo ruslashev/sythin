@@ -18,15 +18,12 @@ struct token_t {
   void pretty_print();
 };
 
-token_t* token_primitive(int line, int column, int kind);
-token_t* token_number(int line, int column, double number);
-token_t* token_identifier(int line, int column, std::string identifier);
-
 class lexer_t {
   std::string _source, _filename;
   char _last_char;
   size_t _source_offset;
   int _next_line, _next_column, _line, _column;
+  std::vector<token_t*> _allocated_tokens;
 
   void _next_char();
   bool _is_newline(char x);
@@ -36,8 +33,13 @@ class lexer_t {
   double _lex_number_decimal();
   double _lex_number_fraction();
   bool _try_lex_number_exponent(double *exponent);
+
+  token_t* _token_primitive(int kind);
+  token_t* _token_number(double number);
+  token_t* _token_identifier(std::string identifier);
 public:
   lexer_t(const std::string &source);
+  ~lexer_t();
   token_t* next_token();
   std::string get_location();
 };
