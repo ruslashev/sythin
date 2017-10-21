@@ -15,10 +15,6 @@ int main() {
   puts("parsed program:");
   program->pretty_print();
 
-  program->scope = new scope_t {
-    { "pi", value_number(M_PI) }
-  };
-
   std::vector<message_t> messages;
   validate_top_level_functions(program, &messages);
   for (const message_t &message : messages)

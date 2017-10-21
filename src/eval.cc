@@ -69,7 +69,7 @@ static value_t* evaluate_application(const term_t *const term
         lambda->lambda.body->scope = new scope_t;
       (*lambda->lambda.body->scope)[*lambda->lambda.arg] = parameter;
       return evaluate_term(lambda->lambda.body, program, garbage);
-      // maybe delete scope here and return later?
+      // maybe delete scope here and return later? probably not
     }
     default:
       die("unexpected application lambda type <%s>"
@@ -134,7 +134,50 @@ static value_t* evaluate_term(const term_t *const term
   }
 }
 
+static void clear_scopes_rec(term_t *term) {
+  switch (term->kind) {
+    case term_k::program:
+      for (term_t *tl_term : *term->program.terms)
+        clear_scopes_rec(tl_term);
+      break;
+    case term_k::definition:
+      clear_scopes_rec(term->definition.body);
+      break;
+    case term_k::application:
+      clear_scopes_rec(term->application.lambda);
+      clear_scopes_rec(term->application.parameter);
+      break;
+    case term_k::case_of:
+      clear_scopes_rec(term->case_of.value);
+      for (const term_t::case_statement &statement : *term->case_of.statements) {
+        if (statement.value)
+          clear_scopes_rec(statement.value);
+        clear_scopes_rec(statement.result);
+      }
+      break;
+    case term_k::value:
+      switch (term->value->type.kind) {
+        case type_k::lambda:
+          clear_scopes_rec(term->value->lambda.body);
+          break;
+        default:
+          break;
+      }
+      break;
+    default:
+      break;
+  }
+  if (term->scope != nullptr) {
+    delete term->scope;
+    term->scope = nullptr;
+  }
+}
+
 double evaluate_program(term_t *program, double f, double t) {
+  program->scope = new scope_t {
+    { "pi", value_number(M_PI) }
+  };
+
   term_t *main_def = nullptr;
   for (term_t *const term : *program->program.terms) {
     if (term->kind != term_k::definition)
@@ -147,27 +190,28 @@ double evaluate_program(term_t *program, double f, double t) {
 
   main_def->scope = new scope_t;
 
-  value_t *value_freq = value_number(f), *value_time = value_number(t);
-
-  std::vector<value_t*> garbage;
-  garbage.push_back(value_freq);
-  garbage.push_back(value_time);
-
   term_t *main_lam = main_def->definition.body;
   assertf(main_lam->kind == term_k::value);
   assertf(main_lam->value->type.kind == type_k::lambda);
   value_t *lam_freq = main_lam->value;
   std::map<std::string, value_t*> main_parameter_value_freq;
-  (*main_def->scope)[*lam_freq->lambda.arg] = value_freq;
+  (*main_def->scope)[*lam_freq->lambda.arg] = value_number(f);
 
   term_t *lam_time_term = lam_freq->lambda.body;
   assertf(lam_time_term->kind == term_k::value);
   assertf(lam_time_term->value->type.kind == type_k::lambda);
   value_t *lam_time = lam_time_term->value;
   std::map<std::string, value_t*> main_parameter_value_time;
-  (*main_def->scope)[*lam_time->lambda.arg] = value_time;
+  (*main_def->scope)[*lam_time->lambda.arg] = value_number(t);
 
   term_t *main_body = lam_time->lambda.body;
+
+  std::vector<value_t*> garbage;
+  for (const auto &program_scope_pair : *program->scope)
+    garbage.push_back(program_scope_pair.second);
+  for (const auto &main_scope_pair : *main_def->scope)
+    garbage.push_back(main_scope_pair.second);
+
   value_t *program_result = evaluate_term(main_body, program, &garbage);
 
   if (program_result->type.kind != type_k::number)
@@ -177,8 +221,13 @@ double evaluate_program(term_t *program, double f, double t) {
 
   for (const value_t *const value : garbage)
     delete value;
+
   delete main_def->scope;
   main_def->scope = nullptr;
+  delete program->scope;
+  program->scope = nullptr;
+
+  clear_scopes_rec(program);
 
   return result;
 }
