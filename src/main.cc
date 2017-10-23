@@ -1,5 +1,5 @@
 #include "eval.hh"
-#include "parse.hh"
+#include "lex.hh"
 #include "lang.hh"
 #include "utils.hh"
 #include "wav_writer.hh"
@@ -8,7 +8,7 @@
 int main() {
   std::string source = read_file("test.sth");
 
-  term_t *program = parse_string(source);
+  term_t *program = lex_parse_string(source);
   if (!program)
     exit(1);
 

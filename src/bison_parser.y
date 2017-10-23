@@ -1,5 +1,5 @@
 %{
-#include "parse.hh"
+#include "lex.hh"
 %}
 
 %define api.pure full

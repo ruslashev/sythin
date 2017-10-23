@@ -56,7 +56,7 @@ struct yyunion_t {
   };
 };
 
-term_t* parse_string(const std::string &source);
+term_t* lex_parse_string(const std::string &source);
 int yylex(yyunion_t *yylval, lexer_t *lexer);
 void yyerror(lexer_t *lexer, term_t **root, const char *error);
 

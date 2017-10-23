@@ -1,4 +1,4 @@
-#include "parse.hh"
+#include "lex.hh"
 #include "bison_parser_tokens.hh"
 #include "utils.hh"
 #include <cmath>
@@ -317,7 +317,7 @@ std::string lexer_t::get_location() {
   return _filename + ":" + std::to_string(_line) + ":" + std::to_string(_column);
 }
 
-term_t* parse_string(const std::string &source) {
+term_t* lex_parse_string(const std::string &source) {
   lexer_t lexer(source);
   term_t *root = nullptr;
   yyparse(&lexer, &root);
