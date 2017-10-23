@@ -97,7 +97,7 @@ struct term_t {
   };
 
   term_t *parent;
-  scope_t *scope; // should be vector (or not? (probably not))
+  scope_t *scope;
 
   ~term_t();
   bool lookup(const std::string &identifier, value_t *&value) const;
