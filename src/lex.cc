@@ -271,26 +271,6 @@ token_t* lexer_t::next_token() {
       } else
         die("unexpected character in number at %d:%d", _line, _column);
     }
-    if (_last_char == '*') {
-      _next_char();
-      return _token_primitive(TK_MULT);
-    }
-    if (_last_char == '=') {
-      _next_char();
-      return _token_primitive(TK_EQUALS);
-    }
-    if (_last_char == '(') {
-      _next_char();
-      return _token_primitive(TK_LPAREN);
-    }
-    if (_last_char == ')') {
-      _next_char();
-      return _token_primitive(TK_RPAREN);
-    }
-    if (_last_char == '\\') {
-      _next_char();
-      return _token_primitive(TK_LAMBDA);
-    }
     if (_last_char == '#') {
       _next_char();
       while (!_is_newline(_last_char))
@@ -298,13 +278,19 @@ token_t* lexer_t::next_token() {
       _next_char();
       continue;
     }
-    if (_last_char == ',') {
+    const std::map<char,int> punctuation_tokens = {
+      { '*', TK_MULT },
+      { '=', TK_EQUALS },
+      { '(', TK_LPAREN },
+      { ')', TK_RPAREN },
+      { '\\', TK_LAMBDA },
+      { ',', TK_EOS },
+      { '_', TK_ANY },
+    };
+    if (punctuation_tokens.count(_last_char)) {
+      int kind = punctuation_tokens.at(_last_char);
       _next_char();
-      return _token_primitive(TK_EOS);
-    }
-    if (_last_char == '_') {
-      _next_char();
-      return _token_primitive(TK_ANY);
+      return _token_primitive(kind);
     }
     if (_last_char == 0)
       return _token_primitive(TK_EOF);
