@@ -1,6 +1,7 @@
 #pragma once
 
+#include "lang.hh"
 #include <string>
 
-void live(const std::string &definition);
+void live(const term_t *const program, const std::string &definition);
 

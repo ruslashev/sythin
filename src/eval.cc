@@ -173,43 +173,46 @@ static void clear_scopes_rec(term_t *term) {
   }
 }
 
-double evaluate_program(term_t *program, double f, double t) {
+double evaluate_definition(term_t *program, const std::string &name, double f
+    , double t) {
   program->scope = new scope_t {
     { "pi", value_number(M_PI) }
   };
 
-  term_t *main_def = nullptr;
+  term_t *def = nullptr;
   for (term_t *const term : *program->program.terms) {
     if (term->kind != term_k::definition)
       continue;
-    if (*term->definition.name != "main")
+    if (*term->definition.name != name)
       continue;
-    main_def = term;
+    def = term;
     break;
   }
+  if (def == nullptr)
+    die("no definition \"%s\" found", name.c_str());
 
-  main_def->scope = new scope_t;
+  def->scope = new scope_t;
 
-  term_t *main_lam = main_def->definition.body;
+  term_t *main_lam = def->definition.body;
   assertf(main_lam->kind == term_k::value);
   assertf(main_lam->value->type.kind == type_k::lambda);
   value_t *lam_freq = main_lam->value;
   std::map<std::string, value_t*> main_parameter_value_freq;
-  (*main_def->scope)[*lam_freq->lambda.arg] = value_number(f);
+  (*def->scope)[*lam_freq->lambda.arg] = value_number(f);
 
   term_t *lam_time_term = lam_freq->lambda.body;
   assertf(lam_time_term->kind == term_k::value);
   assertf(lam_time_term->value->type.kind == type_k::lambda);
   value_t *lam_time = lam_time_term->value;
   std::map<std::string, value_t*> main_parameter_value_time;
-  (*main_def->scope)[*lam_time->lambda.arg] = value_number(t);
+  (*def->scope)[*lam_time->lambda.arg] = value_number(t);
 
   term_t *main_body = lam_time->lambda.body;
 
   std::vector<value_t*> garbage;
   for (const auto &program_scope_pair : *program->scope)
     garbage.push_back(program_scope_pair.second);
-  for (const auto &main_scope_pair : *main_def->scope)
+  for (const auto &main_scope_pair : *def->scope)
     garbage.push_back(main_scope_pair.second);
 
   value_t *program_result = evaluate_term(main_body, program, &garbage);
@@ -222,8 +225,8 @@ double evaluate_program(term_t *program, double f, double t) {
   for (const value_t *const value : garbage)
     delete value;
 
-  delete main_def->scope;
-  main_def->scope = nullptr;
+  delete def->scope;
+  def->scope = nullptr;
   delete program->scope;
   program->scope = nullptr;
 

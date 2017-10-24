@@ -2,5 +2,6 @@
 
 #include "lang.hh"
 
-double evaluate_program(term_t *program, double f, double t);
+double evaluate_definition(term_t *program, const std::string &name, double f
+    , double t);
 

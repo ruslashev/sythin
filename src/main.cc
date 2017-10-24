@@ -25,17 +25,17 @@ int main(int argc, char **argv) {
     exit(1);
 
   if (1) {
-    live("main");
+    live(program, "main");
   } else {
     samples_t samples = { std::vector<uint16_t>(), std::vector<uint16_t>() };
     double amplitude = 32760, sample_rate = 44100, frequency = 261.626 // C4
       , seconds = 2.5;
 
     uint64_t num_samples = sample_rate * seconds;
-    double inv_sample_rate = 1. / (double)sample_rate;
+    double seconds_per_sample = 1. / (double)sample_rate;
     for (uint64_t i = 0; i < num_samples; i++) {
-      double f = frequency, t = (double)i * inv_sample_rate
-        , value = evaluate_program(program, f, t);
+      double f = frequency, t = (double)i * seconds_per_sample
+        , value = evaluate_definition(program, "main", f, t);
       uint16_t w_value = std::round(amplitude * value);
       samples[0].push_back(w_value);
       samples[1].push_back(w_value);
