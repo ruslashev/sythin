@@ -2,6 +2,11 @@
 #include "utils.hh"
 #include <SDL2/SDL.h>
 
+static double note_to_freq(char note, int octave, int accidental_offset) {
+  int octave_diff = octave - 4, semitone_diff = note - 'a';
+  return 440. * pow(2., octave_diff) * pow(2., semitone_diff / 12.);
+}
+
 static void audio_callback(void *userdata, uint8_t *stream, int len) {
   static int t = 0;
   float seconds_per_sample = 1.f / 48000.f;
