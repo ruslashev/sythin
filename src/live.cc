@@ -6,7 +6,7 @@
 struct passed_data_t {
   term_t *const program;
   const std::string definition;
-  std::vector<double> frequencies;
+  std::map<double, bool> frequencies;
   passed_data_t(term_t *const program, const std::string &definition)
     : program(program)
     , definition(definition) {
@@ -35,11 +35,12 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
   for (int i = 0; i < 4096; ++i) {
     double t = (double)(c++) * 1. / 48000.;
     *stream_ptr = 0;
-    for (double f : passed_data->frequencies) {
-      printf("f=%f\n", f);
-      float value = (float)evaluate_definition(passed_data->program
-          , passed_data->definition, f, t);
-      *stream_ptr += 0.2f * value;
+    for (const std::pair<double, bool> freq_pair : passed_data->frequencies) {
+      if (freq_pair.second) {
+        float value = (float)evaluate_definition(passed_data->program
+            , passed_data->definition, freq_pair.first, t);
+        *stream_ptr += 0.2f * value;
+      }
     }
     ++stream_ptr;
   }
@@ -85,18 +86,15 @@ void live(term_t *const program, const std::string &definition) {
 
   bool quit = false;
   while (!quit) {
-    passed_data.frequencies.clear();
-
     SDL_Event event;
     while (SDL_PollEvent(&event))
       if (event.type == SDL_QUIT
           || (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE))
         quit = true;
-      else if (event.type == SDL_KEYDOWN)
-        if (key_frequencies.count(event.key.keysym.sym)) {
-          printf("set %f\n", key_frequencies[event.key.keysym.sym]);
-          passed_data.frequencies.push_back(key_frequencies[event.key.keysym.sym]);
-        }
+      else if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP)
+        if (key_frequencies.count(event.key.keysym.sym))
+          passed_data.frequencies[key_frequencies[event.key.keysym.sym]]
+            = event.type == SDL_KEYDOWN;
 
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
