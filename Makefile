@@ -3,7 +3,7 @@ warnings = -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable \
 		   -Wnull-dereference -Wformat=2 -Wdisabled-optimization \
 		   -Wsuggest-override -Wlogical-op -Wtrampolines -Wfloat-equal
 flags = -ggdb3 -Og -std=c++0x -fno-rtti -fno-exceptions
-libraries =
+libraries = -lSDL2
 CC = gcc
 CXX = g++
 BIN = sythin

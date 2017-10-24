@@ -1,11 +1,12 @@
 #include "eval.hh"
-#include "lex.hh"
 #include "lang.hh"
+#include "lex.hh"
+#include "live.hh"
 #include "utils.hh"
 #include "wav_writer.hh"
 #include <cmath>
 
-int main() {
+int main(int argc, char **argv) {
   std::string source = read_file("test.sth");
 
   term_t *program = lex_parse_string(source);
@@ -23,22 +24,25 @@ int main() {
   if (!messages_contain_no_errors(messages))
     exit(1);
 
-  samples_t samples = { std::vector<uint16_t>(), std::vector<uint16_t>() };
-  double amplitude = 32760, sample_rate = 44100, frequency = 261.626 // C4
-    , seconds = 2.5;
+  if (1) {
+    live("main");
+  } else {
+    samples_t samples = { std::vector<uint16_t>(), std::vector<uint16_t>() };
+    double amplitude = 32760, sample_rate = 44100, frequency = 261.626 // C4
+      , seconds = 2.5;
 
-  uint64_t num_samples = sample_rate * seconds;
-  double inv_sample_rate = 1. / (double)sample_rate;
-  for (uint64_t i = 0; i < num_samples; i++) {
-    double f = frequency, t = (double)i * inv_sample_rate
-      , value = evaluate_program(program, f, t);
-    uint16_t w_value = std::round(amplitude * value);
-    samples[0].push_back(w_value);
-    samples[1].push_back(w_value);
+    uint64_t num_samples = sample_rate * seconds;
+    double inv_sample_rate = 1. / (double)sample_rate;
+    for (uint64_t i = 0; i < num_samples; i++) {
+      double f = frequency, t = (double)i * inv_sample_rate
+        , value = evaluate_program(program, f, t);
+      uint16_t w_value = std::round(amplitude * value);
+      samples[0].push_back(w_value);
+      samples[1].push_back(w_value);
+    }
+
+    write_wav("out.wav", sample_rate, samples);
   }
-
-  write_wav("out.wav", sample_rate, samples);
-
   delete program;
 }
 
