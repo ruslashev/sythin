@@ -3,5 +3,5 @@
 #include "lang.hh"
 #include <string>
 
-void live(const term_t *const program, const std::string &definition);
+void live(term_t *const program, const std::string &definition);
 
