@@ -77,11 +77,20 @@ void live(term_t *const program, const std::string &definition) {
 
   SDL_PauseAudioDevice(dev, 0);
 
-  std::map<int, double> key_frequencies = {
-    { SDLK_z, note_to_freq('A', 4, 0) },
-    { SDLK_x, note_to_freq('A', 4, 1) },
-    { SDLK_c, note_to_freq('B', 4, 0) },
-    { SDLK_v, note_to_freq('C', 5, 0) }
+  int octave = 4;
+  std::map<int, std::pair<char, int>> key_notes = {
+    { SDLK_a, { 'C', 0 } },
+    { SDLK_w, { 'C', 1 } },
+    { SDLK_s, { 'D', 0 } },
+    { SDLK_e, { 'D', 1 } },
+    { SDLK_d, { 'E', 0 } },
+    { SDLK_f, { 'F', 0 } },
+    { SDLK_t, { 'F', 1 } },
+    { SDLK_g, { 'G', 0 } },
+    { SDLK_y, { 'G', 1 } },
+    { SDLK_h, { 'A', 0 } },
+    { SDLK_u, { 'A', 1 } },
+    { SDLK_j, { 'B', 0 } }
   };
 
   bool quit = false;
@@ -91,10 +100,16 @@ void live(term_t *const program, const std::string &definition) {
       if (event.type == SDL_QUIT
           || (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE))
         quit = true;
-      else if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP)
-        if (key_frequencies.count(event.key.keysym.sym))
-          passed_data.frequencies[key_frequencies[event.key.keysym.sym]]
+      else if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
+        const int key = event.key.keysym.sym;
+        if (key_notes.count(key)) {
+          const std::pair<char, int> note = key_notes[key];
+          passed_data.frequencies[note_to_freq(note.first, octave, note.second)]
             = event.type == SDL_KEYDOWN;
+        }
+        if (key >= SDLK_0 && key <= SDLK_9)
+          octave = key - SDLK_0;
+      }
 
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
