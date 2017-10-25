@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
     exit(1);
 
   if (1) {
-    live(program, "main");
+    live(program, "simple_release");
   } else {
     samples_t samples = { std::vector<uint16_t>(), std::vector<uint16_t>() };
     double amplitude = 32760, sample_rate = 44100, frequency = 261.626 // C4

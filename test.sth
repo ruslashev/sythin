@@ -22,5 +22,6 @@ mult2pi2 = (mult3 (double pi))
 
 # equivalent
 # main = (\ f . (\ t . (sin_alias ((mult2pi2 f) t))))
-main f t = (sin_alias ((mult2pi2 f) t))
+simple f t = (sin_alias ((mult2pi2 f) t))
+simple_release f t = ((* (sin ((mult2pi2 f) t))) (exp ((* -5) t)))
 

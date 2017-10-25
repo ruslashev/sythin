@@ -21,6 +21,8 @@ static value_t* evaluate_application(const term_t *const term
 
   switch (lambda->type.kind) {
     case type_k::builtin: {
+      value_t *applied_parameter
+        = evaluate_term(term->application.parameter, program, garbage);
       switch (lambda->builtin->kind) {
         case builtin_k::mult:
           if (lambda->builtin->mult.x == nullptr) {
@@ -32,8 +34,6 @@ static value_t* evaluate_application(const term_t *const term
             if (stored_parameter->type.kind != type_k::number)
               die("builtin mult/1: unexpected parameter of type <%s>, expected"
                   " <number>", type_to_string(&stored_parameter->type).c_str());
-            value_t *applied_parameter
-              = evaluate_term(term->application.parameter, program, garbage);
             if (applied_parameter->type.kind != type_k::number)
               die("builtin mult/1: applied to value of type <%s>, expected"
                   " <number>", type_to_string(&applied_parameter->type).c_str());
@@ -46,14 +46,20 @@ static value_t* evaluate_application(const term_t *const term
             return result;
           }
         case builtin_k::sin: {
-          value_t *applied_parameter
-            = evaluate_term(term->application.parameter, program, garbage);
           if (applied_parameter->type.kind != type_k::number)
             die("builtin sin/1: unexpected parameter of type <%s>, expected"
                 " <number>" , type_to_string(&applied_parameter->type).c_str());
           // applied_parameter->number.value = sin(applied_parameter->number.value);
           // return applied_parameter;
           value_t *result = value_number(sin(applied_parameter->number));
+          garbage->push_back(result);
+          return result;
+        }
+        case builtin_k::exp: {
+          if (applied_parameter->type.kind != type_k::number)
+            die("builtin exp/1: unexpected parameter of type <%s>, expected"
+                " <number>" , type_to_string(&applied_parameter->type).c_str());
+          value_t *result = value_number(exp(applied_parameter->number));
           garbage->push_back(result);
           return result;
         }

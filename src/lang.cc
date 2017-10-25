@@ -33,6 +33,7 @@ std::string builtin_kind_to_string(builtin_k kind) {
   switch (kind) {
     case builtin_k::mult: return "mult";
     case builtin_k::sin:  return "sin";
+    case builtin_k::exp:  return "exp";
     default:              return "unhandled";
   }
 }
@@ -225,17 +226,13 @@ void validate_top_level_functions(const term_t *const term
   }
 
   for (auto &occ_pair : function_occurence_counter)
-    if (occ_pair.second > 1) {
-      std::string message_content = "duplicate function \"" + occ_pair.first
-        + "\"";
-      messages->push_back({ message_k::error, message_content });
-    }
+    if (occ_pair.second > 1)
+      messages->push_back({ message_k::error
+          , "duplicate function \"" + occ_pair.first + "\"" });
 
-  if (function_occurence_counter.find("main")
-      == function_occurence_counter.end()) {
-    std::string message_content = "no main function";
-    messages->push_back({ message_k::error, message_content });
-  }
+  // if (function_occurence_counter.find("main")
+  //     == function_occurence_counter.end())
+  //   messages->push_back({ message_k::error, "no main function" });
 }
 
 builtin_t* builtin_mult() {
@@ -248,6 +245,12 @@ builtin_t* builtin_mult() {
 builtin_t* builtin_sin() {
   builtin_t *b = new builtin_t;
   b->kind = builtin_k::sin;
+  return b;
+}
+
+builtin_t* builtin_exp() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::exp;
   return b;
 }
 

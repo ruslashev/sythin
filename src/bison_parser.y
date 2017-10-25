@@ -13,7 +13,7 @@
 
 %token <token> TK_IDENTIFIER TK_EQUALS TK_EOS TK_LPAREN TK_RPAREN TK_WORD_CASE
 %token <token> TK_WORD_OF TK_RARROW TK_NUMBER TK_LAMBDA TK_DOT TK_MULT TK_SIN
-%token <token> TK_WORD_END TK_ANY
+%token <token> TK_WORD_END TK_ANY TK_EXP
 
 %type <term> program definition body application identifier case_of case_value;
 %type <term_list> definition_list identifier_list;
@@ -92,5 +92,6 @@ lambda : TK_LPAREN TK_LAMBDA TK_IDENTIFIER TK_DOT body TK_RPAREN {
        };
 
 builtin : TK_MULT { $$ = builtin_mult(); }
-        | TK_SIN { $$ = builtin_sin(); };
+        | TK_SIN { $$ = builtin_sin(); }
+        | TK_EXP { $$ = builtin_exp(); };
 

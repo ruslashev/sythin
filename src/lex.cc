@@ -28,6 +28,7 @@ std::string token_kind_to_string(int kind) {
     case TK_DOT:        return "TK_DOT";
     case TK_MULT:       return "TK_MULT";
     case TK_SIN:        return "TK_SIN";
+    case TK_EXP:        return "TK_EXP";
     case TK_WORD_CASE:  return "TK_WORD_CASE";
     case TK_WORD_OF:    return "TK_WORD_OF";
     case TK_RARROW:     return "TK_RARROW";
@@ -204,18 +205,20 @@ token_t* lexer_t::next_token() {
       std::string identifier = "";
       identifier += _last_char;
       _next_char();
-      while (_is_alpha(_last_char) || _is_digit(_last_char) || _last_char == '_') {
+      while (_is_alpha(_last_char) || _is_digit(_last_char)
+          || _last_char == '_') {
         identifier += _last_char;
         _next_char();
       }
-      if (identifier == "sin")
-        return _token_primitive(TK_SIN);
-      if (identifier == "case")
-        return _token_primitive(TK_WORD_CASE);
-      if (identifier == "of")
-        return _token_primitive(TK_WORD_OF);
-      if (identifier == "end")
-        return _token_primitive(TK_WORD_END);
+      const std::map<std::string, int> reserved_identifiers = {
+        { "sin",  TK_SIN },
+        { "exp",  TK_EXP },
+        { "case", TK_WORD_CASE },
+        { "of",   TK_WORD_OF },
+        { "end",  TK_WORD_END }
+      };
+      if (reserved_identifiers.count(identifier))
+        return _token_primitive(reserved_identifiers.at(identifier));
       return _token_identifier(identifier);
     }
     if (_last_char == '+' || _last_char == '-' || _is_digit(_last_char)

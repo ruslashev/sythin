@@ -25,7 +25,8 @@ struct term_t;
 
 enum class builtin_k {
   mult,
-  sin
+  sin,
+  exp
 };
 
 std::string builtin_kind_to_string(builtin_k kind);
@@ -123,6 +124,7 @@ void validate_top_level_functions(const term_t *const term
 
 builtin_t* builtin_mult();
 builtin_t* builtin_sin();
+builtin_t* builtin_exp();
 
 value_t* value_number(double number);
 value_t* value_lambda(const std::string &arg, term_t *body);

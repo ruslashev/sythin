@@ -4,9 +4,14 @@
 #include <SDL2/SDL.h>
 
 struct passed_data_t {
+  struct frequency_data_t {
+    bool on;
+    uint64_t c;
+    frequency_data_t() : c(0) {}
+  };
   term_t *const program;
   const std::string definition;
-  std::map<double, bool> frequencies;
+  std::map<double, frequency_data_t> frequencies; // _very_ sloppy but works
   passed_data_t(term_t *const program, const std::string &definition)
     : program(program)
     , definition(definition) {
@@ -30,13 +35,12 @@ static double note_to_freq(char note, int octave, int accidental_offset) {
 
 static void audio_callback(void *userdata, uint8_t *stream, int len) {
   passed_data_t *passed_data = (passed_data_t*)userdata;
-  static uint64_t c = 0;
   float *stream_ptr = (float*)stream;
   for (int i = 0; i < 4096; ++i) {
-    double t = (double)(c++) * 1. / 48000.;
     *stream_ptr = 0;
-    for (const std::pair<double, bool> freq_pair : passed_data->frequencies) {
-      if (freq_pair.second) {
+    for (auto &freq_pair : passed_data->frequencies) {
+      if (freq_pair.second.on) {
+        double t = (double)(freq_pair.second.c++) * 1. / 48000.;
         float value = (float)evaluate_definition(passed_data->program
             , passed_data->definition, freq_pair.first, t);
         *stream_ptr += 0.2f * value;
@@ -104,8 +108,12 @@ void live(term_t *const program, const std::string &definition) {
         const int key = event.key.keysym.sym;
         if (key_notes.count(key)) {
           const std::pair<char, int> note = key_notes[key];
-          passed_data.frequencies[note_to_freq(note.first, octave, note.second)]
+          passed_data.frequencies[
+            note_to_freq(note.first, octave, note.second)].on
             = event.type == SDL_KEYDOWN;
+          if (event.type == SDL_KEYUP)
+            passed_data.frequencies[
+              note_to_freq(note.first, octave, note.second)].c = 0;
         }
         if (key >= SDLK_0 && key <= SDLK_9)
           octave = key - SDLK_0;
