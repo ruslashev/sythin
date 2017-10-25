@@ -47,7 +47,7 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
 }
 
 void live(term_t *const program, const std::string &definition) {
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_AUDIO) != 0)
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
     die("Failed to initialize SDL");
 
   int window_width = 600, window_height = (3. / 4.) * (double)window_width;

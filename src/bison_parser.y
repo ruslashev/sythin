@@ -16,7 +16,7 @@
 %token <token> TK_WORD_END TK_ANY
 
 %type <term> program definition body application identifier case_of case_value;
-%type <term_list> definition_list;
+%type <term_list> definition_list identifier_list;
 %type <case_statement_list> case_statement_list;
 %type <case_statement> case_statement;
 %type <value> value number lambda;
@@ -34,7 +34,23 @@ definition_list : definition_list definition { $$->push_back($2); }
 
 definition : TK_IDENTIFIER TK_EQUALS body {
              $$ = term_definition(*$1->identifier, $3);
+           }
+           | TK_IDENTIFIER identifier_list TK_EQUALS body {
+             term_t *p = $4;
+             for (int i = $2->size() - 1; i >= 0; --i) {
+               printf("ident %s\n", $2->at(i)->identifier.name->c_str());
+               p = term_value(value_lambda(*$2->at(i)->identifier.name, p));
+             }
+             $$ = term_definition(*$1->identifier, p);
            };
+
+identifier_list : identifier_list identifier { $$->push_back($2); }
+                | identifier {
+                  $$ = new std::vector<term_t*>;
+                  $$->push_back($1);
+                };
+
+identifier : TK_IDENTIFIER { $$ = term_identifier(*$1->identifier); };
 
 body: application { $$ = $1; }
     | identifier { $$ = $1; }
@@ -43,8 +59,6 @@ body: application { $$ = $1; }
     | TK_LPAREN body TK_RPAREN { $$ = $2; };
 
 application: TK_LPAREN body body TK_RPAREN { $$ = term_application($2, $3); };
-
-identifier : TK_IDENTIFIER { $$ = term_identifier(*$1->identifier); };
 
 case_of : TK_WORD_CASE body TK_WORD_OF case_statement_list TK_WORD_END {
           $$ = term_case_of($2, $4);
