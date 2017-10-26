@@ -24,9 +24,13 @@ std::string type_to_string(const type_t *const type);
 struct term_t;
 
 enum class builtin_k {
-  mult,
   sin,
-  exp
+  exp,
+  inv,
+  plus,
+  minus,
+  mult,
+  divide
 };
 
 std::string builtin_kind_to_string(builtin_k kind);
@@ -36,7 +40,7 @@ struct builtin_t {
   union {
     struct {
       term_t *x; // can be null for partial application
-    } mult;
+    } binary_op;
   };
   ~builtin_t();
 };
@@ -122,9 +126,13 @@ bool messages_contain_no_errors(const std::vector<message_t> &messages);
 void validate_top_level_functions(const term_t *const term
     , std::vector<message_t> *messages);
 
-builtin_t* builtin_mult();
 builtin_t* builtin_sin();
 builtin_t* builtin_exp();
+builtin_t* builtin_inv();
+builtin_t* builtin_plus();
+builtin_t* builtin_minus();
+builtin_t* builtin_mult();
+builtin_t* builtin_divide();
 
 value_t* value_number(double number);
 value_t* value_lambda(const std::string &arg, term_t *body);

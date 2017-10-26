@@ -31,18 +31,25 @@ std::string type_to_string(const type_t *const type) {
 
 std::string builtin_kind_to_string(builtin_k kind) {
   switch (kind) {
-    case builtin_k::mult: return "mult";
-    case builtin_k::sin:  return "sin";
-    case builtin_k::exp:  return "exp";
-    default:              return "unhandled";
+    case builtin_k::sin:    return "sin";
+    case builtin_k::exp:    return "exp";
+    case builtin_k::inv:    return "inv";
+    case builtin_k::plus:   return "plus";
+    case builtin_k::minus:  return "minus";
+    case builtin_k::mult:   return "mult";
+    case builtin_k::divide: return "divide";
+    default:                return "unhandled";
   }
 }
 
 builtin_t::~builtin_t() {
   switch (kind) {
+    case builtin_k::plus:
+    case builtin_k::minus:
     case builtin_k::mult:
-      if (mult.x)
-        delete mult.x;
+    case builtin_k::divide:
+      if (binary_op.x)
+        delete binary_op.x;
       break;
     default:
       break;
@@ -235,13 +242,6 @@ void validate_top_level_functions(const term_t *const term
   //   messages->push_back({ message_k::error, "no main function" });
 }
 
-builtin_t* builtin_mult() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::mult;
-  b->mult.x = nullptr;
-  return b;
-}
-
 builtin_t* builtin_sin() {
   builtin_t *b = new builtin_t;
   b->kind = builtin_k::sin;
@@ -251,6 +251,40 @@ builtin_t* builtin_sin() {
 builtin_t* builtin_exp() {
   builtin_t *b = new builtin_t;
   b->kind = builtin_k::exp;
+  return b;
+}
+
+builtin_t* builtin_inv() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::inv;
+  return b;
+}
+
+builtin_t* builtin_plus() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::plus;
+  b->binary_op.x = nullptr;
+  return b;
+}
+
+builtin_t* builtin_minus() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::minus;
+  b->binary_op.x = nullptr;
+  return b;
+}
+
+builtin_t* builtin_mult() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::mult;
+  b->binary_op.x = nullptr;
+  return b;
+}
+
+builtin_t* builtin_divide() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::divide;
+  b->binary_op.x = nullptr;
   return b;
 }
 

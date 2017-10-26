@@ -12,8 +12,10 @@
 %parse-param { term_t **root }
 
 %token <token> TK_IDENTIFIER TK_EQUALS TK_EOS TK_LPAREN TK_RPAREN TK_WORD_CASE
-%token <token> TK_WORD_OF TK_RARROW TK_NUMBER TK_LAMBDA TK_DOT TK_MULT TK_SIN
-%token <token> TK_WORD_END TK_ANY TK_EXP
+%token <token> TK_WORD_OF TK_RARROW TK_NUMBER TK_LAMBDA TK_DOT TK_WORD_END
+%token <token> TK_ANY TK_BUILTIN_SIN TK_BUILTIN_EXP TK_BUILTIN_INV
+%token <token> TK_BUILTIN_PLUS TK_BUILTIN_MINUS TK_BUILTIN_MULT TK_BUILTIN_DIVIDE
+%token <token> TK_OP_PLUS TK_OP_MINUS TK_OP_MULT TK_OP_DIVIDE
 
 %type <term> program definition body simple identifier case_of case_value;
 %type <term_list> definition_list identifier_list simple_list;
@@ -101,7 +103,11 @@ lambda : TK_LPAREN TK_LAMBDA TK_IDENTIFIER TK_DOT body TK_RPAREN {
          $$ = value_lambda(*$3->identifier, $5);
        };
 
-builtin : TK_MULT { $$ = builtin_mult(); }
-        | TK_SIN { $$ = builtin_sin(); }
-        | TK_EXP { $$ = builtin_exp(); };
+builtin : TK_BUILTIN_PLUS { $$ = builtin_plus(); }
+        | TK_BUILTIN_MINUS { $$ = builtin_minus(); }
+        | TK_BUILTIN_MULT { $$ = builtin_mult(); }
+        | TK_BUILTIN_DIVIDE { $$ = builtin_divide(); }
+        | TK_BUILTIN_SIN { $$ = builtin_sin(); }
+        | TK_BUILTIN_EXP { $$ = builtin_exp(); }
+        | TK_BUILTIN_INV { $$ = builtin_inv(); };
 

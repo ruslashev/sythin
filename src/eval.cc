@@ -24,27 +24,6 @@ static value_t* evaluate_application(const term_t *const term
       value_t *applied_parameter
         = evaluate_term(term->application.parameter, program, garbage);
       switch (lambda->builtin->kind) {
-        case builtin_k::mult:
-          if (lambda->builtin->mult.x == nullptr) {
-            lambda->builtin->mult.x = term->application.parameter;
-            return lambda;
-          } else {
-            value_t *stored_parameter
-              = evaluate_term(lambda->builtin->mult.x, program, garbage);
-            if (stored_parameter->type.kind != type_k::number)
-              die("builtin mult/1: unexpected parameter of type <%s>, expected"
-                  " <number>", type_to_string(&stored_parameter->type).c_str());
-            if (applied_parameter->type.kind != type_k::number)
-              die("builtin mult/1: applied to value of type <%s>, expected"
-                  " <number>", type_to_string(&applied_parameter->type).c_str());
-            lambda->builtin->mult.x = nullptr;
-            // applied_parameter->number.value *= stored_parameter->number.value;
-            // return applied_parameter;
-            value_t *result = value_number(applied_parameter->number
-                * stored_parameter->number);
-            garbage->push_back(result);
-            return result;
-          }
         case builtin_k::sin: {
           if (applied_parameter->type.kind != type_k::number)
             die("builtin sin/1: unexpected parameter of type <%s>, expected"
@@ -63,6 +42,61 @@ static value_t* evaluate_application(const term_t *const term
           garbage->push_back(result);
           return result;
         }
+        case builtin_k::inv: {
+          if (applied_parameter->type.kind != type_k::number)
+            die("builtin inv/1: unexpected parameter of type <%s>, expected"
+                " <number>" , type_to_string(&applied_parameter->type).c_str());
+          value_t *result = value_number(-applied_parameter->number);
+          garbage->push_back(result);
+          return result;
+        }
+        case builtin_k::plus:
+        case builtin_k::minus:
+        case builtin_k::mult:
+        case builtin_k::divide:
+          if (lambda->builtin->binary_op.x == nullptr) {
+            lambda->builtin->binary_op.x = term->application.parameter;
+            return lambda;
+          } else {
+            value_t *stored_parameter
+              = evaluate_term(lambda->builtin->binary_op.x, program, garbage);
+            if (stored_parameter->type.kind != type_k::number)
+              die("builtin %s/1: unexpected parameter of type <%s>, expected"
+                  " <number>"
+                  , builtin_kind_to_string(lambda->builtin->kind).c_str()
+                  , type_to_string(&stored_parameter->type).c_str());
+            if (applied_parameter->type.kind != type_k::number)
+              die("builtin %s/1: applied to value of type <%s>, expected"
+                  " <number>"
+                  , builtin_kind_to_string(lambda->builtin->kind).c_str()
+                  , type_to_string(&applied_parameter->type).c_str());
+            lambda->builtin->binary_op.x = nullptr;
+            // applied_parameter->number.value *= stored_parameter->number.value;
+            // return applied_parameter;
+            value_t *result;
+            switch (lambda->builtin->kind) { // :born_to_think:
+              case builtin_k::plus:
+                result = value_number(stored_parameter->number
+                    + applied_parameter->number);
+                break;
+              case builtin_k::minus:
+                result = value_number(stored_parameter->number
+                    - applied_parameter->number);
+                break;
+              case builtin_k::mult:
+                result = value_number(stored_parameter->number
+                    * applied_parameter->number);
+                break;
+              case builtin_k::divide:
+                result = value_number(stored_parameter->number
+                    / applied_parameter->number);
+                break;
+              default: // silence warning
+                break;
+            }
+            garbage->push_back(result);
+            return result;
+          }
         default:
           die("unexpected builtin kind");
       }

@@ -17,22 +17,31 @@ std::string read_file(const std::string &filename) {
 
 std::string token_kind_to_string(int kind) {
   switch (kind) {
-    case TK_EOF:        return "TK_EOF";
-    case TK_IDENTIFIER: return "TK_IDENTIFIER";
-    case TK_EQUALS:     return "TK_EQUALS";
-    case TK_EOS:        return "TK_EOS";
-    case TK_LPAREN:     return "TK_LPAREN";
-    case TK_RPAREN:     return "TK_RPAREN";
-    case TK_NUMBER:     return "TK_NUMBER";
-    case TK_LAMBDA:     return "TK_LAMBDA";
-    case TK_DOT:        return "TK_DOT";
-    case TK_MULT:       return "TK_MULT";
-    case TK_SIN:        return "TK_SIN";
-    case TK_EXP:        return "TK_EXP";
-    case TK_WORD_CASE:  return "TK_WORD_CASE";
-    case TK_WORD_OF:    return "TK_WORD_OF";
-    case TK_RARROW:     return "TK_RARROW";
-    default:            return "unhandled";
+    case TK_IDENTIFIER:     return "TK_IDENTIFIER";
+    case TK_EQUALS:         return "TK_EQUALS";
+    case TK_EOS:            return "TK_EOS";
+    case TK_LPAREN:         return "TK_LPAREN";
+    case TK_RPAREN:         return "TK_RPAREN";
+    case TK_WORD_CASE:      return "TK_WORD_CASE";
+    case TK_WORD_OF:        return "TK_WORD_OF";
+    case TK_RARROW:         return "TK_RARROW";
+    case TK_NUMBER:         return "TK_NUMBER";
+    case TK_LAMBDA:         return "TK_LAMBDA";
+    case TK_DOT:            return "TK_DOT";
+    case TK_WORD_END:       return "TK_WORD_END";
+    case TK_ANY:            return "TK_ANY";
+    case TK_BUILTIN_SIN:    return "TK_BUILTIN_SIN";
+    case TK_BUILTIN_EXP:    return "TK_BUILTIN_EXP";
+    case TK_BUILTIN_INV:    return "TK_BUILTIN_INV";
+    case TK_BUILTIN_PLUS:   return "TK_BUILTIN_PLUS";
+    case TK_BUILTIN_MINUS:  return "TK_BUILTIN_MINUS";
+    case TK_BUILTIN_MULT:   return "TK_BUILTIN_MULT";
+    case TK_BUILTIN_DIVIDE: return "TK_BUILTIN_DIVIDE";
+    case TK_OP_PLUS:        return "TK_OP_PLUS";
+    case TK_OP_MINUS:       return "TK_OP_MINUS";
+    case TK_OP_MULT:        return "TK_OP_MULT";
+    case TK_OP_DIVIDE:      return "TK_OP_DIVIDE";
+    default:                return "unhandled";
   }
 }
 
@@ -211,11 +220,16 @@ token_t* lexer_t::next_token() {
         _next_char();
       }
       const std::map<std::string, int> reserved_identifiers = {
-        { "sin",  TK_SIN },
-        { "exp",  TK_EXP },
-        { "case", TK_WORD_CASE },
-        { "of",   TK_WORD_OF },
-        { "end",  TK_WORD_END }
+        { "sin",    TK_BUILTIN_SIN },
+        { "exp",    TK_BUILTIN_EXP },
+        { "inv",    TK_BUILTIN_INV },
+        { "plus",   TK_BUILTIN_PLUS },
+        { "minus",  TK_BUILTIN_MINUS },
+        { "mult",   TK_BUILTIN_MULT },
+        { "divide", TK_BUILTIN_DIVIDE },
+        { "case",   TK_WORD_CASE },
+        { "of",     TK_WORD_OF },
+        { "end",    TK_WORD_END }
       };
       if (reserved_identifiers.count(identifier))
         return _token_primitive(reserved_identifiers.at(identifier));
@@ -282,7 +296,10 @@ token_t* lexer_t::next_token() {
       continue;
     }
     const std::map<char,int> punctuation_tokens = {
-      { '*', TK_MULT },
+      { '+', TK_OP_PLUS },
+      { '-', TK_OP_MINUS },
+      { '*', TK_OP_MULT },
+      { '/', TK_OP_DIVIDE },
       { '=', TK_EQUALS },
       { '(', TK_LPAREN },
       { ')', TK_RPAREN },
