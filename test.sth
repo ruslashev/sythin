@@ -6,22 +6,27 @@ add = (\x . (\y .
     0 -> x,
     _ -> (succ ((add x) (pred y)))
   end
-))
+)),
 mult = (\x . (\y .
   case y of
     0 -> x,
     _ -> ((add ((mult x) (pred y))) x)
   end
-))
+)),
 
-mult2 x y = ((* x) y)
+m2n a b     = * a b,
+m2c a b     = ((* a) b),
+m3n a b c   = * (* a b) c,
+m3c a b c   = ((* ((* a) b)) c),
+m4n a b c d = * (* (* a b) c) d,
+m4c a b c d = ((* ((* ((* a) b)) c)) d),
 
-two = 2
-sin_alias = sin
-double = (* two)
-mult3 x y z = ((* ((* x) y)) z)
-mult2pi2 = (mult3 (double pi))
+two = 2,
+sin_alias = sin,
+double = (* two),
+mult3 x y z = ((* ((* x) y)) z),
+mult2pi2 = (m3n (double pi)),
 
-simple f t = (sin_alias ((mult2pi2 f) t))
-simple_release f t = ((* (sin ((mult2pi2 f) t))) (exp ((* -5) t)))
+simple f t = (sin_alias ((mult2pi2 f) t)),
+simple_release f t = ((* (sin ((mult2pi2 f) t))) (exp ((* -5) t))),
 

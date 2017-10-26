@@ -15,8 +15,8 @@
 %token <token> TK_WORD_OF TK_RARROW TK_NUMBER TK_LAMBDA TK_DOT TK_MULT TK_SIN
 %token <token> TK_WORD_END TK_ANY TK_EXP
 
-%type <term> program definition body identifier case_of case_value;
-%type <term_list> definition_list identifier_list;
+%type <term> program definition body simple identifier case_of case_value;
+%type <term_list> definition_list identifier_list simple_list;
 %type <case_statement_list> case_statement_list;
 %type <case_statement> case_statement;
 %type <value> value number lambda;
@@ -32,14 +32,15 @@ definition_list : definition_list definition { $$->push_back($2); }
                   $$->push_back($1);
                 };
 
-definition : TK_IDENTIFIER TK_EQUALS body {
+definition : TK_IDENTIFIER TK_EQUALS body TK_EOS {
              $$ = term_definition(*$1->identifier, $3);
            }
-           | TK_IDENTIFIER identifier_list TK_EQUALS body {
+           | TK_IDENTIFIER identifier_list TK_EQUALS body TK_EOS {
              term_t *p = $4;
              for (int i = $2->size() - 1; i >= 0; --i)
                p = term_value(value_lambda(*$2->at(i)->identifier.name, p));
              $$ = term_definition(*$1->identifier, p);
+             // delete $2? probably yes
            };
 
 identifier_list : identifier_list identifier { $$->push_back($2); }
@@ -50,11 +51,24 @@ identifier_list : identifier_list identifier { $$->push_back($2); }
 
 identifier : TK_IDENTIFIER { $$ = term_identifier(*$1->identifier); };
 
-body: TK_LPAREN body body TK_RPAREN { $$ = term_application($2, $3); }
-    | identifier { $$ = $1; }
-    | case_of { $$ = $1; }
-    | value { $$ = term_value($1); }
-    | TK_LPAREN body TK_RPAREN { $$ = $2; };
+body : simple_list {
+       term_t *p = $1->at(0);
+       for (size_t i = 1; i < $1->size(); ++i)
+         p = term_application(p, $1->at(i));
+       $$ = p;
+       // delete $1
+     };
+
+simple_list : simple_list simple { $$->push_back($2); }
+            | simple {
+              $$ = new std::vector<term_t*>;
+              $$->push_back($1);
+            };
+
+simple : identifier { $$ = $1; }
+       | case_of { $$ = $1; }
+       | value { $$ = term_value($1); }
+       | TK_LPAREN body TK_RPAREN { $$ = $2; };
 
 case_of : TK_WORD_CASE body TK_WORD_OF case_statement_list TK_WORD_END {
           $$ = term_case_of($2, $4);
