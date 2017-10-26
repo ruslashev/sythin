@@ -15,7 +15,7 @@
 %token <token> TK_WORD_OF TK_RARROW TK_NUMBER TK_LAMBDA TK_DOT TK_MULT TK_SIN
 %token <token> TK_WORD_END TK_ANY TK_EXP
 
-%type <term> program definition body application identifier case_of case_value;
+%type <term> program definition body identifier case_of case_value;
 %type <term_list> definition_list identifier_list;
 %type <case_statement_list> case_statement_list;
 %type <case_statement> case_statement;
@@ -37,10 +37,8 @@ definition : TK_IDENTIFIER TK_EQUALS body {
            }
            | TK_IDENTIFIER identifier_list TK_EQUALS body {
              term_t *p = $4;
-             for (int i = $2->size() - 1; i >= 0; --i) {
-               printf("ident %s\n", $2->at(i)->identifier.name->c_str());
+             for (int i = $2->size() - 1; i >= 0; --i)
                p = term_value(value_lambda(*$2->at(i)->identifier.name, p));
-             }
              $$ = term_definition(*$1->identifier, p);
            };
 
@@ -52,13 +50,11 @@ identifier_list : identifier_list identifier { $$->push_back($2); }
 
 identifier : TK_IDENTIFIER { $$ = term_identifier(*$1->identifier); };
 
-body: application { $$ = $1; }
+body: TK_LPAREN body body TK_RPAREN { $$ = term_application($2, $3); }
     | identifier { $$ = $1; }
     | case_of { $$ = $1; }
     | value { $$ = term_value($1); }
     | TK_LPAREN body TK_RPAREN { $$ = $2; };
-
-application: TK_LPAREN body body TK_RPAREN { $$ = term_application($2, $3); };
 
 case_of : TK_WORD_CASE body TK_WORD_OF case_statement_list TK_WORD_END {
           $$ = term_case_of($2, $4);

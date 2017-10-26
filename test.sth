@@ -14,14 +14,14 @@ mult = (\x . (\y .
   end
 ))
 
+mult2 x y = ((* x) y)
+
 two = 2
 sin_alias = sin
 double = (* two)
-mult3 = (\ x . (\ y . (\ z . ((* ((* x) y)) z))))
+mult3 x y z = ((* ((* x) y)) z)
 mult2pi2 = (mult3 (double pi))
 
-# equivalent
-# main = (\ f . (\ t . (sin_alias ((mult2pi2 f) t))))
 simple f t = (sin_alias ((mult2pi2 f) t))
 simple_release f t = ((* (sin ((mult2pi2 f) t))) (exp ((* -5) t)))
 

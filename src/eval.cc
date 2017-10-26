@@ -121,9 +121,7 @@ static value_t* evaluate_term(const term_t *const term
               , garbage);
           if (statement_value->type.kind != type_k::number)
             die("anything but numbers are not supported in case statements yet");
-          long long int value_i = std::round(value->number)
-            , statement_value_i = std::round(statement_value->number);
-          if (value_i == statement_value_i) {
+          if (std::llround(value->number) == std::llround(statement_value->number)) {
             result = statement.result;
             break;
           }
