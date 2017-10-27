@@ -28,5 +28,5 @@ mult3 x y z = ((mult ((mult x) y)) z),
 mult2pi2 = (m3n (double pi)),
 
 simple f t = (sin_alias ((mult2pi2 f) t)),
-simple_release f t = ((mult (sin ((mult2pi2 f) t))) (exp ((mult -5) t))),
+simple_release f t = (sin (2 * pi * f * t)) * (exp (-5 * t)),
 

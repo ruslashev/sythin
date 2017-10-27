@@ -133,6 +133,8 @@ builtin_t* builtin_plus();
 builtin_t* builtin_minus();
 builtin_t* builtin_mult();
 builtin_t* builtin_divide();
+// builtin_t* builtin_singulary();
+// builtin_t* builtin_binary();
 
 value_t* value_number(double number);
 value_t* value_lambda(const std::string &arg, term_t *body);
