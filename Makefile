@@ -3,18 +3,23 @@ warnings = -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable \
 		   -Wnull-dereference -Wformat=2 -Wdisabled-optimization \
 		   -Wsuggest-override -Wlogical-op -Wtrampolines -Wfloat-equal
 flags = -ggdb3 -Og -std=c++0x -fno-rtti -fno-exceptions
-libraries = -lSDL2
+libraries = -lSDL2 -lGLEW -lGL
 CC = gcc
 CXX = g++
 BIN = sythin
 
-CC_OBJS = $(patsubst src/%.cc,.objs/%.o, $(shell find src/ -type f -iname '*.cc'))
-OBJS = .objs/bison_parser.o $(CC_OBJS) $(CPP_OBJS)
+SOURCES = $(shell find . -type f -name '*.cc' -o -name '*.cpp')
+OBJS = .objs/src/bison_parser.cc.o $(SOURCES:./%=.objs/%.o)
 DEPS = $(OBJS:.o=.d)
 CXXFLAGS = $(warnings) $(flags)
 LDFLAGS = $(libraries)
 
 $(shell mkdir -p .objs >/dev/null)
+$(shell mkdir -p .objs/src >/dev/null)
+$(shell mkdir -p .objs/thirdparty >/dev/null)
+
+# all:
+# 	@echo $(SOURCES)
 
 all: $(BIN)
 	./sythin
@@ -29,7 +34,12 @@ src/bison_parser.cc: src/bison_parser.y
 	  && mv bison_parser.cc src \
 	  && mv bison_parser_tokens.hh src
 
-.objs/%.o: src/%.cc src/bison_parser.cc
+# .objs/%.o: thirdparty/*.cpp
+
+# .objs/%.o: ./%
+# 	@echo "asdf $< $@"
+
+.objs/%.o: % src/bison_parser.cc
 	@echo "Compiling $<"
 	@$(CXX) -MMD -MP -c -o $@ $< $(CXXFLAGS)
 
