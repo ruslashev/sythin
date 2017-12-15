@@ -3,7 +3,9 @@
 #include "utils.hh"
 #include "gfx.hh"
 #include <SDL2/SDL.h>
+#include <GL/glew.h>
 #include "imgui.hh"
+#include "../thirdparty/imgui.h"
 
 struct passed_data_t {
   struct frequency_data_t {
@@ -55,7 +57,7 @@ static bool done = false;
 static SDL_AudioDeviceID dev = 0;
 static passed_data_t *passed_data = nullptr;
 static int octave = 4;
-const static std::map<int, std::pair<char, int>> key_notes = {
+static const std::map<int, std::pair<char, int>> key_notes = {
   { SDLK_a, { 'C', 0 } },
   { SDLK_w, { 'C', 1 } },
   { SDLK_s, { 'D', 0 } },
@@ -70,7 +72,7 @@ const static std::map<int, std::pair<char, int>> key_notes = {
   { SDLK_j, { 'B', 0 } }
 };
 
-void init() {
+static void init() {
   SDL_AudioSpec want, have;
   SDL_memset(&want, 0, sizeof(want));
   want.freq = 48000;
@@ -83,15 +85,34 @@ void init() {
   if (dev == 0)
     die("failed to open audio device: %s", SDL_GetError());
   SDL_PauseAudioDevice(dev, 0);
+
+  float s = 20.f / 255.f;
+  glClearColor(s, s, s, 1.f);
 }
 
-void update(double dt, double t) {
+static void update(double dt, double t) {
 }
 
-void frame() {
+static void draw_gui() {
+  if (ImGui::BeginMainMenuBar()) {
+    // ImGui::PushStyleColor(ImGuiCol_Button,        r2v( 67,  96, 123));
+    // ImGui::PushStyleColor(ImGuiCol_ButtonHovered, r2v( 75, 108, 138));
+    // ImGui::PushStyleColor(ImGuiCol_ButtonActive,  r2v( 83, 119, 153));
+
+    ImGui::Text("Sythin");
+
+    ImGui::EndMainMenuBar();
+  }
+
+  ImGui::ShowTestWindow(nullptr);
 }
 
-void key_event(unsigned long long key, bool down) {
+static void frame() {
+  glClear(GL_COLOR_BUFFER_BIT);
+  draw_gui();
+}
+
+static void key_event(unsigned long long key, bool down) {
   if (!down && key == SDLK_ESCAPE)
     done = true;
 
@@ -106,14 +127,14 @@ void key_event(unsigned long long key, bool down) {
     octave = key - SDLK_0;
 }
 
-void destroy() {
+static void destroy() {
   SDL_CloseAudioDevice(dev);
 }
 
 void live(term_t *const program, const std::string &definition) {
   passed_data = new passed_data_t(program, definition);
 
-  int window_width = 600, window_height = (3. / 4.) * (double)window_width + 0.5;
+  int window_width = 1200, window_height = (3. / 4.) * (double)window_width + 0.5;
   gfx_init("Sythin", window_width, window_height);
 
   gfx_main_loop(&done, init, frame, update, key_event, destroy);
