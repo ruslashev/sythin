@@ -3,7 +3,7 @@
 #include "utils.hh"
 #define GLEW_STATIC
 #include <GL/glew.h>
-#include "../thirdparty/imgui.h"
+#include "../thirdparty/imgui/imgui.h"
 
 static SDL_Window *window;
 static SDL_GLContext glcontext;

@@ -1,5 +1,5 @@
 #include <GL/glew.h>
-#include "../thirdparty/imgui.h"
+#include "../thirdparty/imgui/imgui.h"
 #include "imgui.hh"
 
 static float g_Time = 0.0f;

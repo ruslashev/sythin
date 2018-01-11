@@ -5,7 +5,7 @@
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
 #include "imgui.hh"
-#include "../thirdparty/imgui.h"
+#include "../thirdparty/imgui/imgui.h"
 
 struct passed_data_t {
   struct frequency_data_t {

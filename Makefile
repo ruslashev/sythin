@@ -17,9 +17,7 @@ LDFLAGS = $(libraries)
 $(shell mkdir -p .objs >/dev/null)
 $(shell mkdir -p .objs/src >/dev/null)
 $(shell mkdir -p .objs/thirdparty >/dev/null)
-
-# all:
-# 	@echo $(SOURCES)
+$(shell mkdir -p .objs/thirdparty/imgui >/dev/null)
 
 all: $(BIN)
 	./sythin
