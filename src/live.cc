@@ -104,7 +104,32 @@ static void draw_gui() {
     ImGui::EndMainMenuBar();
   }
 
+  float padding = 5;
+  ImGui::SetNextWindowPos(ImVec2(padding, 25 + padding), ImGuiCond_Always);
+  ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x / 2.f - padding * 2
+        , ImGui::GetIO().DisplaySize.y - 25 - padding * 2), ImGuiCond_Always);
+  ImGui::Begin("Source code", nullptr, ImGuiWindowFlags_NoResize
+      | ImGuiWindowFlags_NoMove
+      | ImGuiWindowFlags_NoCollapse);
+
+  static char text[1024*16] =
+    "/*\n"
+    " The Pentium F00F bug, shorthand for F0 0F C7 C8,\n"
+    " the hexadecimal encoding of one offending instruction,\n"
+    " more formally, the invalid operand with locked CMPXCHG8B\n"
+    " instruction bug, is a design flaw in the majority of\n"
+    " Intel Pentium, Pentium MMX, and Pentium OverDrive\n"
+    " processors (all in the P5 microarchitecture).\n"
+    "*/\n\n"
+    "label:\n"
+    "\tlock cmpxchg8b eax\n";
+  ImGui::InputTextMultiline("##source", text, IM_ARRAYSIZE(text)
+      , ImVec2(-1.0f, ImGui::GetTextLineHeight() * 16)
+      , ImGuiInputTextFlags_AllowTabInput);
+
   ImGui::ShowTestWindow(nullptr);
+
+  ImGui::End();
 }
 
 static void frame() {
