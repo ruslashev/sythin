@@ -110,16 +110,18 @@ static void draw_gui() {
 
   float padding = 5;
   ImGui::SetNextWindowPos(ImVec2(padding, 25 + padding), ImGuiCond_Always);
-  ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x / 2.f - padding * 2
+  ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * (2.f / 5.f) - padding * 2
         , ImGui::GetIO().DisplaySize.y - 25 - padding * 2), ImGuiCond_Always);
   ImGui::Begin("Source code", nullptr, ImGuiWindowFlags_NoResize
       | ImGuiWindowFlags_NoMove
       | ImGuiWindowFlags_NoTitleBar
       | ImGuiWindowFlags_NoCollapse);
 
+  ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
   ImGui::InputTextMultiline("##source", g_source, sizeof(g_source)
-      , ImVec2(-1.0f, ImGui::GetTextLineHeight() * 16)
+      , ImVec2(-1.f, -1.f)
       , ImGuiInputTextFlags_AllowTabInput);
+  ImGui::PopFont();
 
   ImGui::ShowTestWindow(nullptr);
 

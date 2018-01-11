@@ -228,6 +228,7 @@ bool imgui_init(SDL_Window* window) {
   io.IniFilename = NULL;
 
   io.Fonts->AddFontFromFileTTF("res/Asap-Medium.ttf", 17.0f);
+  io.Fonts->AddFontFromFileTTF("res/monaco.ttf", 15.0f);
 
   imgui_set_display_size(window);
 
