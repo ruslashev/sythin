@@ -2,6 +2,7 @@
 #include "live.hh"
 #include "utils.hh"
 #include "gfx.hh"
+#include "lex.hh"
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
 #include "imgui.hh"
@@ -13,13 +14,35 @@ struct passed_data_t {
     uint64_t c;
     frequency_data_t() : c(0) {}
   };
-  term_t *const program;
+  term_t *program;
   const std::string definition;
   std::map<double, frequency_data_t> frequencies; // _very_ sloppy but works
-  passed_data_t(term_t *const program, const std::string &definition)
-    : program(program)
+  passed_data_t(const std::string &definition)
+    : program(nullptr)
     , definition(definition) {
   }
+};
+
+static bool g_done = false;
+static SDL_AudioDeviceID g_dev = 0;
+static std::string g_filename = "";
+static char g_source[100000]; // stupid
+static passed_data_t *g_passed_data = nullptr;
+static std::vector<message_t> g_messages;
+static int g_octave = 4;
+static const std::map<int, std::pair<char, int>> key_notes = {
+  { SDLK_a, { 'C', 0 } },
+  { SDLK_w, { 'C', 1 } },
+  { SDLK_s, { 'D', 0 } },
+  { SDLK_e, { 'D', 1 } },
+  { SDLK_d, { 'E', 0 } },
+  { SDLK_f, { 'F', 0 } },
+  { SDLK_t, { 'F', 1 } },
+  { SDLK_g, { 'G', 0 } },
+  { SDLK_y, { 'G', 1 } },
+  { SDLK_h, { 'A', 0 } },
+  { SDLK_u, { 'A', 1 } },
+  { SDLK_j, { 'B', 0 } }
 };
 
 static double note_to_freq(char note, int octave, int accidental_offset) {
@@ -53,25 +76,6 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
   }
 }
 
-static bool done = false;
-static SDL_AudioDeviceID dev = 0;
-static passed_data_t *passed_data = nullptr;
-static int octave = 4;
-static const std::map<int, std::pair<char, int>> key_notes = {
-  { SDLK_a, { 'C', 0 } },
-  { SDLK_w, { 'C', 1 } },
-  { SDLK_s, { 'D', 0 } },
-  { SDLK_e, { 'D', 1 } },
-  { SDLK_d, { 'E', 0 } },
-  { SDLK_f, { 'F', 0 } },
-  { SDLK_t, { 'F', 1 } },
-  { SDLK_g, { 'G', 0 } },
-  { SDLK_y, { 'G', 1 } },
-  { SDLK_h, { 'A', 0 } },
-  { SDLK_u, { 'A', 1 } },
-  { SDLK_j, { 'B', 0 } }
-};
-
 static void init() {
   SDL_AudioSpec want, have;
   SDL_memset(&want, 0, sizeof(want));
@@ -80,11 +84,11 @@ static void init() {
   want.channels = 1;
   want.samples = 4096;
   want.callback = audio_callback;
-  want.userdata = (void*)passed_data;
-  dev = SDL_OpenAudioDevice(nullptr, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE);
-  if (dev == 0)
+  want.userdata = (void*)g_passed_data;
+  g_dev = SDL_OpenAudioDevice(nullptr, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE);
+  if (g_dev == 0)
     die("failed to open audio device: %s", SDL_GetError());
-  SDL_PauseAudioDevice(dev, 0);
+  SDL_PauseAudioDevice(g_dev, 0);
 
   float s = 20.f / 255.f;
   glClearColor(s, s, s, 1.f);
@@ -99,7 +103,7 @@ static void draw_gui() {
     // ImGui::PushStyleColor(ImGuiCol_ButtonHovered, r2v( 75, 108, 138));
     // ImGui::PushStyleColor(ImGuiCol_ButtonActive,  r2v( 83, 119, 153));
 
-    ImGui::Text("Sythin");
+    ImGui::Text("%s - sythin", g_filename.c_str());
 
     ImGui::EndMainMenuBar();
   }
@@ -110,20 +114,10 @@ static void draw_gui() {
         , ImGui::GetIO().DisplaySize.y - 25 - padding * 2), ImGuiCond_Always);
   ImGui::Begin("Source code", nullptr, ImGuiWindowFlags_NoResize
       | ImGuiWindowFlags_NoMove
+      | ImGuiWindowFlags_NoTitleBar
       | ImGuiWindowFlags_NoCollapse);
 
-  static char text[1024*16] =
-    "/*\n"
-    " The Pentium F00F bug, shorthand for F0 0F C7 C8,\n"
-    " the hexadecimal encoding of one offending instruction,\n"
-    " more formally, the invalid operand with locked CMPXCHG8B\n"
-    " instruction bug, is a design flaw in the majority of\n"
-    " Intel Pentium, Pentium MMX, and Pentium OverDrive\n"
-    " processors (all in the P5 microarchitecture).\n"
-    "*/\n\n"
-    "label:\n"
-    "\tlock cmpxchg8b eax\n";
-  ImGui::InputTextMultiline("##source", text, IM_ARRAYSIZE(text)
+  ImGui::InputTextMultiline("##source", g_source, sizeof(g_source)
       , ImVec2(-1.0f, ImGui::GetTextLineHeight() * 16)
       , ImGuiInputTextFlags_AllowTabInput);
 
@@ -139,29 +133,53 @@ static void frame() {
 
 static void key_event(unsigned long long key, bool down) {
   if (!down && key == SDLK_ESCAPE)
-    done = true;
+    g_done = true;
 
   if (key_notes.count(key)) {
     const std::pair<char, int> note = key_notes.at(key);
-    double freq = note_to_freq(note.first, octave, note.second);
-    passed_data->frequencies[freq].on = down;
+    double freq = note_to_freq(note.first, g_octave, note.second);
+    g_passed_data->frequencies[freq].on = down;
     if (!down)
-      passed_data->frequencies[freq].c = 0;
+      g_passed_data->frequencies[freq].c = 0;
   }
   if (key >= SDLK_0 && key <= SDLK_9)
-    octave = key - SDLK_0;
+    g_octave = key - SDLK_0;
 }
 
 static void destroy() {
-  SDL_CloseAudioDevice(dev);
+  SDL_CloseAudioDevice(g_dev);
 }
 
-void live(term_t *const program, const std::string &definition) {
-  passed_data = new passed_data_t(program, definition);
+void reload_file() {
+  if (g_passed_data->program)
+    delete g_passed_data->program;
+  g_messages.clear();
+
+  std::string source = read_file("test.sth");
+  strncpy(g_source, source.c_str(), sizeof(g_source));
+
+  g_passed_data->program = lex_parse_string(g_source);
+  if (!g_passed_data->program)
+    exit(1);
+
+  validate_top_level_functions(g_passed_data->program, &g_messages);
+  // for (const message_t &message : messages)
+  //   printf("%s: %s\n", message_kind_to_string(message.kind).c_str()
+  //       , message.content.c_str());
+}
+
+void live(std::string _filename, const std::string &definition) {
+  g_filename = _filename;
+
+  g_passed_data = new passed_data_t(definition);
+  reload_file();
 
   int window_width = 1200, window_height = (3. / 4.) * (double)window_width + 0.5;
   gfx_init("Sythin", window_width, window_height);
 
-  gfx_main_loop(&done, init, frame, update, key_event, destroy);
+  gfx_main_loop(&g_done, init, frame, update, key_event, destroy);
+
+  if (g_passed_data->program)
+    delete g_passed_data->program;
 }
 
