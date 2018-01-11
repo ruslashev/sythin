@@ -29,6 +29,8 @@ static std::string g_filename = "";
 static char g_source[100000]; // stupid
 static passed_data_t *g_passed_data = nullptr;
 static std::vector<message_t> g_messages;
+static std::vector<float> g_samples;
+static float g_frequency = 261.626 /* C4 */, g_seconds = 1;
 static int g_octave = 4;
 static const std::map<int, std::pair<char, int>> key_notes = {
   { SDLK_a, { 'C', 0 } },
@@ -44,6 +46,8 @@ static const std::map<int, std::pair<char, int>> key_notes = {
   { SDLK_u, { 'A', 1 } },
   { SDLK_j, { 'B', 0 } }
 };
+
+void replot();
 
 static double note_to_freq(char note, int octave, int accidental_offset) {
   /* TODO static */ const std::map<char, int> semitone_offset = {
@@ -108,14 +112,23 @@ static void draw_gui() {
     ImGui::EndMainMenuBar();
   }
 
-  float padding = 5;
+  const float padding = 5;
+
   ImGui::SetNextWindowPos(ImVec2(padding, 25 + padding), ImGuiCond_Always);
-  ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * (2.f / 5.f) - padding * 2
-        , ImGui::GetIO().DisplaySize.y - 25 - padding * 2), ImGuiCond_Always);
+  ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * (1.f / 2.f)
+        - padding * 1.5f, ImGui::GetIO().DisplaySize.y - 25 - padding * 2)
+      , ImGuiCond_Always);
+
   ImGui::Begin("Source code", nullptr, ImGuiWindowFlags_NoResize
       | ImGuiWindowFlags_NoMove
       | ImGuiWindowFlags_NoTitleBar
       | ImGuiWindowFlags_NoCollapse);
+
+  if (ImGui::Button("Save")) {
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Compile")) {
+  }
 
   ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
   ImGui::InputTextMultiline("##source", g_source, sizeof(g_source)
@@ -124,6 +137,29 @@ static void draw_gui() {
   ImGui::PopFont();
 
   ImGui::ShowTestWindow(nullptr);
+
+  ImGui::End();
+
+  ImGui::SetNextWindowPos(ImVec2(padding * 0.5f + ImGui::GetIO().DisplaySize.x
+        * (1.f / 2.f), 25 + padding), ImGuiCond_Always);
+  ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * (1.f / 2.f)
+        - padding * 1.5f, ImGui::GetIO().DisplaySize.y - 25 - padding * 2)
+      , ImGuiCond_Always);
+
+  ImGui::Begin("Graph", nullptr, ImGuiWindowFlags_NoResize
+      | ImGuiWindowFlags_NoMove
+      | ImGuiWindowFlags_NoTitleBar
+      | ImGuiWindowFlags_NoCollapse);
+
+
+  ImGui::SliderFloat("seconds", &g_seconds, 0.1f, 5.0f, "%.3f");
+  ImGui::SliderFloat("frequency", &g_frequency, 16.35f, 1975.53f, "%.3f", 2.f);
+
+  if (ImGui::Button("Replot"))
+    replot();
+
+  ImGui::PlotLines("", g_samples.data()
+      , g_samples.size(), 0, g_passed_data->definition.c_str(), -1.f, 1.f, ImVec2(0, 200));
 
   ImGui::End();
 }
@@ -168,6 +204,17 @@ void reload_file() {
   // for (const message_t &message : messages)
   //   printf("%s: %s\n", message_kind_to_string(message.kind).c_str()
   //       , message.content.c_str());
+
+  replot();
+}
+
+void replot() {
+  g_samples.clear();
+  const float amplitude = 32760, sample_rate = 44100, scale = 1.f;
+  for (uint64_t i = 0; i < (uint64_t)(sample_rate * g_seconds + 0.5f); i++)
+    g_samples.push_back((float)evaluate_definition(g_passed_data->program
+          , g_passed_data->definition, g_frequency
+          , (double)i / (double)sample_rate) * scale);
 }
 
 void live(std::string _filename, const std::string &definition) {
