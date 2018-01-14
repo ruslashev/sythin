@@ -138,7 +138,7 @@ static void draw_gui() {
       , ImGuiInputTextFlags_AllowTabInput);
   ImGui::PopFont();
 
-  ImGui::ShowTestWindow(nullptr);
+  ImGui::ShowTestWindow();
 
   ImGui::End();
 

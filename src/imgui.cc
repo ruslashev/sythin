@@ -334,7 +334,6 @@ void imgui_process_event(const SDL_Event *event) {
     case SDL_KEYDOWN:
     case SDL_KEYUP: {
       int key = event->key.keysym.sym & ~SDLK_SCANCODE_MASK;
-      printf("key=%d, down=%d\n", key, event->type == SDL_KEYDOWN);
       io.KeysDown[key] = (event->type == SDL_KEYDOWN);
       io.KeyShift = ((SDL_GetModState() & KMOD_SHIFT) != 0);
       io.KeyCtrl = ((SDL_GetModState() & KMOD_CTRL) != 0);
