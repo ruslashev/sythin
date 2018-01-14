@@ -17,7 +17,7 @@ void gfx_init(const char *title, int width, int height) {
   // SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
 
   window = SDL_CreateWindow("Sythin", SDL_WINDOWPOS_CENTERED
-      , SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL);
+      , SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
   if (!window)
     die("failed to create window");
 
