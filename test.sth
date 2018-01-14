@@ -1,5 +1,5 @@
-# these functions are unused (and builtins are used instead) because
-# they blow up stack becase of level of recursion of evaluate_term()s
+# these functions are unused (and builtins are used instead) since
+# they blow up stack because of level of recursion of evaluate_term()s
 # etc. when used on large numbers
 plus_rec = (\x . (\y .
   case y of

@@ -9,7 +9,7 @@ static SDL_Window *window;
 static SDL_GLContext glcontext;
 
 void gfx_init(const char *title, int width, int height) {
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER) != 0)
     die("Failed to initialize SDL: %s", SDL_GetError());
 
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
@@ -50,16 +50,17 @@ void gfx_main_loop(bool *done
     current_time = real_time;
     accumulator += elapsed;
 
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+      if (event.type == SDL_QUIT)
+        *done = true;
+      else if ((event.type == SDL_KEYDOWN || event.type == SDL_KEYUP)
+          && event.key.repeat == 0)
+        key_event_cb(event.key.keysym.sym, event.type == SDL_KEYDOWN);
+      imgui_process_event(&event);
+    }
+
     while (accumulator >= dt) {
-      SDL_Event event;
-      while (SDL_PollEvent(&event)) {
-        if (event.type == SDL_QUIT)
-          *done = true;
-        else if ((event.type == SDL_KEYDOWN || event.type == SDL_KEYUP)
-            && event.key.repeat == 0)
-          key_event_cb(event.key.keysym.sym, event.type == SDL_KEYDOWN);
-        imgui_process_event(&event);
-      }
       update_cb(dt, t);
       t += dt;
       accumulator -= dt;
