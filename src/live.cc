@@ -30,7 +30,8 @@ static char g_source[100000]; // stupid
 static passed_data_t *g_passed_data = nullptr;
 static std::vector<message_t> g_messages;
 static std::vector<float> g_samples;
-static float g_frequency = 261.626 /* C4 */, g_seconds = 1;
+static float g_frequency = 55.f /* A1 */, g_seconds = 1;
+static std::string g_frequency_to_note = "";
 static int g_octave = 4;
 static const std::map<int, std::pair<char, int>> key_notes = {
   { SDLK_a, { 'C', 0 } },
@@ -151,15 +152,22 @@ static void draw_gui() {
       | ImGuiWindowFlags_NoTitleBar
       | ImGuiWindowFlags_NoCollapse);
 
-
+  ImGui::Text("Time");
+  ImGui::SameLine(80);
   ImGui::SliderFloat("seconds", &g_seconds, 0.1f, 5.0f, "%.3f");
-  ImGui::SliderFloat("frequency", &g_frequency, 16.35f, 1975.53f, "%.3f", 2.f);
+
+  ImGui::Text("Frequency");
+  ImGui::SameLine(80);
+  ImGui::SliderFloat("Hz", &g_frequency, 16.35f, 1975.53f, "%.3f", 2.f);
+
+  ImGui::SameLine();
+  ImGui::Text("%s", g_frequency_to_note.c_str());
 
   if (ImGui::Button("Replot"))
     replot();
 
   ImGui::PlotLines("", g_samples.data()
-      , g_samples.size(), 0, g_passed_data->definition.c_str(), -1.f, 1.f, ImVec2(0, 200));
+      , g_samples.size(), 0, g_passed_data->definition.c_str(), -1.f, 1.f, ImVec2(ImGui::GetContentRegionAvailWidth(), 200));
 
   ImGui::End();
 }
@@ -210,11 +218,68 @@ void reload_file() {
 
 void replot() {
   g_samples.clear();
-  const float amplitude = 32760, sample_rate = 44100, scale = 1.f;
+  const float amplitude = 32760, sample_rate = 48000, scale = 1.f;
   for (uint64_t i = 0; i < (uint64_t)(sample_rate * g_seconds + 0.5f); i++)
     g_samples.push_back((float)evaluate_definition(g_passed_data->program
           , g_passed_data->definition, g_frequency
           , (double)i / (double)sample_rate) * scale);
+
+  std::vector<std::string> notes = {
+    "C0", "C#0", "D0", "D#0", "E0", "F0", "F#0", "G0", "G#0", "A0", "A#0", "B0",
+    "C1", "C#1", "D1", "D#1", "E1", "F1", "F#1", "G1", "G#1", "A1", "A#1", "B1",
+    "C2", "C#2", "D2", "D#2", "E2", "F2", "F#2", "G2", "G#2", "A2", "A#2", "B2",
+    "C3", "C#3", "D3", "D#3", "E3", "F3", "F#3", "G3", "G#3", "A3", "A#3", "B3",
+    "C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4",
+    "C5", "C#5", "D5", "D#5", "E5", "F5", "F#5", "G5", "G#5", "A5", "A#5", "B5",
+    "C6", "C#6", "D6", "D#6", "E6", "F6", "F#6", "G6", "G#6", "A6", "A#6", "B6",
+    "C7", "C#7", "D7", "D#7", "E7", "F7", "F#7", "G7", "G#7", "A7", "A#7", "B7",
+    "C8", "C#8", "D8", "D#8", "E8", "F8", "F#8", "G8", "G#8", "A8", "A#8", "B8",
+    "C9", "C#9", "D9", "D#9", "E9", "F9", "F#9", "G9", "G#9", "A9", "A#9", "B9"
+  };
+
+  int A4_idx = 57, minus = 0, plus = 1, r_index = 0, cent_index = 0, side;
+  double A4 = 440., frequency = A4, r = pow(2.0, 1.0 / 12.0)
+    , cent = pow(2.0, 1.0 / 1200.0), input = g_frequency;
+
+  if (input >= frequency) {
+    while (input >= r * frequency) {
+      frequency = r * frequency;
+      ++r_index;
+    }
+    while (input > cent * frequency) {
+      frequency = cent * frequency;
+      ++cent_index;
+    }
+    if ((cent * frequency - input) < (input - frequency))
+      ++cent_index;
+    if (cent_index > 50) {
+      ++r_index;
+      cent_index = 100 - cent_index;
+      side = (cent_index != 0) ? minus : plus;
+    } else
+      side = plus;
+  } else {
+    while (input <= frequency / r) {
+      frequency = frequency / r;
+      --r_index;
+    }
+    while (input < frequency / cent) {
+      frequency /= cent;
+      ++cent_index;
+    }
+    if ((input - frequency / cent) < (frequency - input))
+      ++cent_index;
+    if (cent_index >= 50) {
+      --r_index;
+      cent_index = 100 - cent_index;
+      side = plus;
+    } else
+      side = (cent_index != 0) ? minus : plus;
+  }
+
+  g_frequency_to_note = notes[A4_idx + r_index];
+  g_frequency_to_note += (side == plus) ? " + " : " - ";
+  g_frequency_to_note += std::to_string(cent_index) + " cents";
 }
 
 void live(std::string _filename, const std::string &definition) {
