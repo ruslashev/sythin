@@ -49,6 +49,7 @@ static const std::map<int, std::pair<char, int>> key_notes = {
 };
 
 void replot();
+void recalculate_freq_to_note();
 
 static double note_to_freq(char note, int octave, int accidental_offset) {
   /* TODO static */ const std::map<char, int> semitone_offset = {
@@ -157,14 +158,54 @@ static void draw_gui() {
   ImGui::SliderFloat("seconds", &g_seconds, 0.1f, 5.0f, "%.3f");
 
   ImGui::Text("Frequency");
+
   ImGui::SameLine(80);
-  ImGui::SliderFloat("Hz", &g_frequency, 16.35f, 1975.53f, "%.3f", 2.f);
+  if (ImGui::SliderFloat("Hz", &g_frequency, 16.35f, 1975.53f, "%.3f", 2.f))
+    recalculate_freq_to_note();
 
   ImGui::SameLine();
   ImGui::Text("%s", g_frequency_to_note.c_str());
 
   if (ImGui::Button("Replot"))
     replot();
+  ImGui::SameLine();
+  if (ImGui::Button("Frequency presets"))
+    ImGui::OpenPopup("Frequency presets");
+  ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * (1.f / 4.f), ImGui::GetIO().DisplaySize.x * (131.f / 500.f))
+      , ImGuiCond_Always);
+  if (ImGui::BeginPopupModal("Frequency presets", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+    ImGui::Columns(7, "presetz", false);
+    for (int o = 0; o <= 6; ++o) {
+      std::string C = "C" + std::to_string(o), Cs = "C#" + std::to_string(o),
+        D = "D" + std::to_string(o), Ds = "D#" + std::to_string(o),
+        E = "E" + std::to_string(o), F = "F" + std::to_string(o),
+        Fs = "F#" + std::to_string(o), G = "G" + std::to_string(o),
+        Gs = "G#" + std::to_string(o), A = "A" + std::to_string(o),
+        As = "A#" + std::to_string(o), B = "B" + std::to_string(o);
+#define sel ImGui::Selectable
+#define rec recalculate_freq_to_note
+      if (sel(C.c_str()))  { g_frequency = note_to_freq('C', o, 0); rec(); }
+      if (sel(Cs.c_str())) { g_frequency = note_to_freq('C', o, 1); rec(); }
+      if (sel(D.c_str()))  { g_frequency = note_to_freq('D', o, 0); rec(); }
+      if (sel(Ds.c_str())) { g_frequency = note_to_freq('D', o, 1); rec(); }
+      if (sel(E.c_str()))  { g_frequency = note_to_freq('E', o, 0); rec(); }
+      if (sel(F.c_str()))  { g_frequency = note_to_freq('F', o, 0); rec(); }
+      if (sel(Fs.c_str())) { g_frequency = note_to_freq('F', o, 1); rec(); }
+      if (sel(G.c_str()))  { g_frequency = note_to_freq('G', o, 0); rec(); }
+      if (sel(Gs.c_str())) { g_frequency = note_to_freq('G', o, 1); rec(); }
+      if (sel(A.c_str()))  { g_frequency = note_to_freq('A', o, 0); rec(); }
+      if (sel(As.c_str())) { g_frequency = note_to_freq('A', o, 1); rec(); }
+      if (sel(B.c_str()))  { g_frequency = note_to_freq('B', o, 0); rec(); }
+#undef sel
+#undef rec
+      ImGui::NextColumn();
+    }
+    ImGui::Columns(1);
+
+    if (ImGui::Button("Close"))
+      ImGui::CloseCurrentPopup();
+    ImGui::EndPopup();
+  }
 
   ImGui::PlotLines("", g_samples.data()
       , g_samples.size(), 0, g_passed_data->definition.c_str(), -1.f, 1.f, ImVec2(ImGui::GetContentRegionAvailWidth(), 200));
@@ -224,6 +265,10 @@ void replot() {
           , g_passed_data->definition, g_frequency
           , (double)i / (double)sample_rate) * scale);
 
+  recalculate_freq_to_note();
+}
+
+void recalculate_freq_to_note() {
   std::vector<std::string> notes = {
     "C0", "C#0", "D0", "D#0", "E0", "F0", "F#0", "G0", "G#0", "A0", "A#0", "B0",
     "C1", "C#1", "D1", "D#1", "E1", "F1", "F#1", "G1", "G#1", "A1", "A#1", "B1",
@@ -278,8 +323,10 @@ void replot() {
   }
 
   g_frequency_to_note = notes[A4_idx + r_index];
-  g_frequency_to_note += (side == plus) ? " + " : " - ";
-  g_frequency_to_note += std::to_string(cent_index) + " cents";
+  if (cent_index) {
+    g_frequency_to_note += (side == plus) ? " + " : " - ";
+    g_frequency_to_note += std::to_string(cent_index) + " cents";
+  }
 }
 
 void live(std::string _filename, const std::string &definition) {
