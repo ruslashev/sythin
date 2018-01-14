@@ -12,7 +12,7 @@ static int g_ShaderHandle = 0, g_VertHandle = 0, g_FragHandle = 0
     , g_AttribLocationColor = 0;
 static unsigned int g_VboHandle = 0, g_VaoHandle = 0, g_ElementsHandle = 0;
 
-static void imgui_render_draw_lists(ImDrawData* draw_data) {
+static void imgui_render_draw_lists(ImDrawData *draw_data) {
   ImGuiIO& io = ImGui::GetIO();
   int fb_width = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
   int fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
@@ -74,7 +74,7 @@ static void imgui_render_draw_lists(ImDrawData* draw_data) {
         , (GLsizeiptr)(cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx))
         , (const void*)cmd_list->IdxBuffer.Data, GL_STREAM_DRAW);
     for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++) {
-      const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
+      const ImDrawCmd *pcmd = &cmd_list->CmdBuffer[cmd_i];
       if (pcmd->UserCallback)
         pcmd->UserCallback(cmd_list, pcmd);
       else {
@@ -112,7 +112,7 @@ static const char* imgui_get_clipboard_text(void*) {
   return SDL_GetClipboardText();
 }
 
-static void imgui_set_clipboard_text(void*, const char* text) {
+static void imgui_set_clipboard_text(void*, const char *text) {
   SDL_SetClipboardText(text);
 }
 
@@ -198,7 +198,7 @@ static bool imgui_create_ogl_state() {
   return true;
 }
 
-bool imgui_init(SDL_Window* window) {
+bool imgui_init(SDL_Window *window) {
   ImGuiIO& io = ImGui::GetIO();
   io.KeyMap[ImGuiKey_Tab] = SDLK_TAB;
   io.KeyMap[ImGuiKey_LeftArrow] = SDL_SCANCODE_LEFT;
@@ -277,7 +277,7 @@ void imgui_destroy() {
   ImGui::Shutdown();
 }
 
-void imgui_new_frame(SDL_Window* window) {
+void imgui_new_frame(SDL_Window *window) {
   if (!g_FontTexture)
     imgui_create_ogl_state();
 
@@ -311,40 +311,39 @@ void imgui_new_frame(SDL_Window* window) {
   ImGui::NewFrame();
 }
 
-bool imgui_process_event(const SDL_Event* event) {
+void imgui_process_event(const SDL_Event *event) {
   ImGuiIO& io = ImGui::GetIO();
   switch (event->type) {
-    case SDL_MOUSEWHEEL: {
+    case SDL_MOUSEWHEEL:
       if (event->wheel.y > 0)
         g_MouseWheel = 1;
       if (event->wheel.y < 0)
         g_MouseWheel = -1;
-      return true;
-    }
-    case SDL_MOUSEBUTTONDOWN: {
+      break;
+    case SDL_MOUSEBUTTONDOWN:
       if (event->button.button == SDL_BUTTON_LEFT)
         g_MousePressed[0] = true;
       if (event->button.button == SDL_BUTTON_RIGHT)
         g_MousePressed[1] = true;
       if (event->button.button == SDL_BUTTON_MIDDLE)
         g_MousePressed[2] = true;
-      return true;
-    }
-    case SDL_TEXTINPUT: {
+      break;
+    case SDL_TEXTINPUT:
       io.AddInputCharactersUTF8(event->text.text);
-      return true;
-    }
+      break;
     case SDL_KEYDOWN:
     case SDL_KEYUP: {
       int key = event->key.keysym.sym & ~SDLK_SCANCODE_MASK;
+      printf("key=%d, down=%d\n", key, event->type == SDL_KEYDOWN);
       io.KeysDown[key] = (event->type == SDL_KEYDOWN);
       io.KeyShift = ((SDL_GetModState() & KMOD_SHIFT) != 0);
       io.KeyCtrl = ((SDL_GetModState() & KMOD_CTRL) != 0);
       io.KeyAlt = ((SDL_GetModState() & KMOD_ALT) != 0);
       io.KeySuper = ((SDL_GetModState() & KMOD_GUI) != 0);
-      return true;
+      break;
     }
+    default:
+      break;
   }
-  return false;
 }
 
