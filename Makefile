@@ -19,6 +19,9 @@ $(shell mkdir -p .objs/src >/dev/null)
 $(shell mkdir -p .objs/thirdparty >/dev/null)
 $(shell mkdir -p .objs/thirdparty/imgui >/dev/null)
 
+dev: $(BIN)
+	./sythin test.sth
+
 all: $(BIN)
 	./sythin
 
@@ -27,18 +30,13 @@ $(BIN): $(OBJS)
 	@$(CXX) -o $@ $^ $(LDFLAGS)
 
 src/bison_parser.cc: src/bison_parser.y
-	@echo "Generating parser"
+	@echo "Generating parser $< to $@"
 	@bison src/bison_parser.y \
 	  && mv bison_parser.cc src \
 	  && mv bison_parser_tokens.hh src
 
-# .objs/%.o: thirdparty/*.cpp
-
-# .objs/%.o: ./%
-# 	@echo "asdf $< $@"
-
 .objs/%.o: % src/bison_parser.cc
-	@echo "Compiling $<"
+	@echo "Compiling $< to $@"
 	@$(CXX) -MMD -MP -c -o $@ $< $(CXXFLAGS)
 
 gdb: $(BIN)
