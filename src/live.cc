@@ -33,6 +33,7 @@ static std::vector<float> g_samples;
 static float g_frequency = 55.f /* A1 */, g_seconds = 1;
 static std::string g_frequency_to_note = "";
 static int g_octave = 4;
+static bool playing = true;
 static const std::map<int, std::pair<char, int>> key_notes = {
   { SDLK_a, { 'C', 0 } },
   { SDLK_w, { 'C', 1 } },
@@ -82,6 +83,10 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
   }
 }
 
+static ImVec4 r2v(int r, int g, int b) {
+  return ImVec4((float)r / 255.f, (float)g / 255.f, (float)b / 255.f, 1.f);
+}
+
 static void init() {
   SDL_AudioSpec want, have;
   SDL_memset(&want, 0, sizeof(want));
@@ -98,6 +103,13 @@ static void init() {
 
   float s = 20.f / 255.f;
   glClearColor(s, s, s, 1.f);
+
+  ImGui::PushStyleColor(ImGuiCol_FrameBg,       r2v( 45,  45,  45));
+  ImGui::PushStyleColor(ImGuiCol_WindowBg,      r2v(  7,   7,   7));
+  ImGui::PushStyleColor(ImGuiCol_MenuBarBg,     r2v(147,  77,  77));
+  ImGui::PushStyleColor(ImGuiCol_Button,        r2v(186,  85,  85));
+  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, r2v(183, 106, 106));
+  ImGui::PushStyleColor(ImGuiCol_ButtonActive,  r2v(159,  80,  80));
 }
 
 static void update(double dt, double t) {
@@ -105,20 +117,17 @@ static void update(double dt, double t) {
 
 static void draw_gui() {
   if (ImGui::BeginMainMenuBar()) {
-    // ImGui::PushStyleColor(ImGuiCol_Button,        r2v( 67,  96, 123));
-    // ImGui::PushStyleColor(ImGuiCol_ButtonHovered, r2v( 75, 108, 138));
-    // ImGui::PushStyleColor(ImGuiCol_ButtonActive,  r2v( 83, 119, 153));
-
     ImGui::Text("%s - sythin", g_filename.c_str());
-
     ImGui::EndMainMenuBar();
   }
 
-  const float padding = 5;
+  const float padding = 5, yoff = 25;
 
-  ImGui::SetNextWindowPos(ImVec2(padding, 25 + padding), ImGuiCond_Always);
-  ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * (1.f / 2.f)
-        - padding * 1.5f, ImGui::GetIO().DisplaySize.y - 25 - padding * 2)
+  ImGuiIO& io = ImGui::GetIO();
+
+  ImGui::SetNextWindowPos(ImVec2(padding, yoff + padding), ImGuiCond_Always);
+  ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * (1.f / 2.f)
+        - padding * 1.5f, io.DisplaySize.y - yoff - padding * 2)
       , ImGuiCond_Always);
 
   ImGui::Begin("Source code", nullptr, ImGuiWindowFlags_NoResize
@@ -132,20 +141,24 @@ static void draw_gui() {
   if (ImGui::Button("Compile")) {
   }
 
-  ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+  ImGui::PushFont(io.Fonts->Fonts[1]);
+  if (playing)
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, r2v(20, 20, 20));
   ImGui::InputTextMultiline("##source", g_source, sizeof(g_source)
-      , ImVec2(-1.f, -1.f)
-      , ImGuiInputTextFlags_AllowTabInput);
+      , ImVec2(-1.f, -1.f), 0);
+  if (playing)
+    ImGui::PopStyleColor();
+  playing = !ImGui::IsItemActive();
   ImGui::PopFont();
 
   ImGui::ShowTestWindow();
 
   ImGui::End();
 
-  ImGui::SetNextWindowPos(ImVec2(padding * 0.5f + ImGui::GetIO().DisplaySize.x
-        * (1.f / 2.f), 25 + padding), ImGuiCond_Always);
-  ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * (1.f / 2.f)
-        - padding * 1.5f, ImGui::GetIO().DisplaySize.y - 25 - padding * 2)
+  ImGui::SetNextWindowPos(ImVec2(padding * 0.5f + io.DisplaySize.x
+        * (1.f / 2.f), yoff + padding), ImGuiCond_Always);
+  ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * (1.f / 2.f)
+        - padding * 1.5f, io.DisplaySize.y - yoff - padding * 2)
       , ImGuiCond_Always);
 
   ImGui::Begin("Graph", nullptr, ImGuiWindowFlags_NoResize
@@ -171,7 +184,7 @@ static void draw_gui() {
   ImGui::SameLine();
   if (ImGui::Button("Frequency presets"))
     ImGui::OpenPopup("Frequency presets");
-  ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * (1.f / 4.f), ImGui::GetIO().DisplaySize.x * (131.f / 500.f))
+  ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * (1.f / 4.f), io.DisplaySize.x * (131.f / 500.f))
       , ImGuiCond_Always);
   if (ImGui::BeginPopupModal("Frequency presets", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::Columns(7, "presetz", false);
