@@ -7,6 +7,11 @@
 #include <GL/glew.h>
 #include "imgui.hh"
 #include "../thirdparty/imgui/imgui.h"
+#include <thread>
+
+void replot();
+void recalculate_freq_to_note();
+void compile();
 
 struct passed_data_t {
   struct frequency_data_t {
@@ -29,19 +34,6 @@ static const int num_compiled_seconds = 4
 static const int note_idx_to_char[] = { 'C', 'C', 'D', 'D', 'E', 'F', 'F', 'G',
   'G', 'A', 'A', 'B' }
   , note_idx_to_accidental[] = { 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, };
-
-static bool g_done = false;
-static SDL_AudioDeviceID g_dev = 0;
-static std::string g_filename = "";
-static char g_source[100000]; // stupid
-static passed_data_t *g_passed_data = nullptr;
-static std::vector<message_t> g_messages;
-static std::vector<float> g_samples;
-static float g_frequency = 55.f /* A1 */, g_seconds = 1;
-static std::string g_frequency_to_note = "";
-static int g_octave = 4;
-static bool playing = true, compiled = false, unsaved = false;
-static float compiled_samples[10][12][num_compiled_samples];
 static const std::map<int, std::pair<char, int>> key_notes = {
   { SDLK_a, { 'C', 0 } },
   { SDLK_w, { 'C', 1 } },
@@ -57,9 +49,19 @@ static const std::map<int, std::pair<char, int>> key_notes = {
   { SDLK_j, { 'B', 0 } }
 };
 
-void replot();
-void recalculate_freq_to_note();
-void compile();
+static bool g_done = false;
+static SDL_AudioDeviceID g_dev = 0;
+static std::string g_filename = "";
+static char g_source[100000]; // stupid
+static passed_data_t *g_passed_data = nullptr;
+static std::vector<message_t> g_messages;
+static std::vector<float> g_samples;
+static float g_frequency = 55.f /* A1 */, g_seconds = 1;
+static std::string g_frequency_to_note = "";
+static int g_octave = 4;
+static bool playing = true, compiled = false, unsaved = false;
+static float compiled_samples[10][12][num_compiled_samples];
+static double compilation_percentage = 0; // compute
 
 static double note_to_freq(char note, int octave, int accidental_offset) {
   /* TODO static */ const std::map<char, int> semitone_offset = {
@@ -158,6 +160,7 @@ static void draw_gui() {
     ImGui::TextWrapped("Warning: code is not compiled, all sounds will be "
         "interpreted on the fly");
   }
+  ImGui::ProgressBar(compilation_percentage, ImVec2(0, 0));
 
   ImGui::PushFont(io.Fonts->Fonts[1]);
   if (playing)
@@ -361,16 +364,16 @@ void recalculate_freq_to_note() {
 }
 
 void compile() {
+  puts("compiling");
   const double percent_change = 1. / 10. / 12. / (double)num_compiled_samples;
-  double percentage = 0;
+  compilation_percentage = 0;
   for (int o = 0; o <= 9; ++o)
     for (int n = 0; n < 12; ++n) {
       float f = note_to_freq(note_idx_to_char[n], o, note_idx_to_accidental[n]);
       for (int t = 0; t < num_compiled_samples; ++t) {
         compiled_samples[o][n][t] = evaluate_definition(g_passed_data->program
             , g_passed_data->definition, f, t);
-        percentage += percent_change;
-        printf("percentage=%f\n", percentage * 100.);
+        compilation_percentage += percent_change * 100.;
       }
     }
 
