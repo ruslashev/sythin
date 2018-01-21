@@ -23,6 +23,13 @@ struct passed_data_t {
   }
 };
 
+static const float sample_rate = 48000;
+static const int num_compiled_seconds = 4
+    , num_compiled_samples = sample_rate * num_compiled_seconds + 0.5f;
+static const int note_idx_to_char[] = { 'C', 'C', 'D', 'D', 'E', 'F', 'F', 'G',
+  'G', 'A', 'A', 'B' }
+  , note_idx_to_accidental[] = { 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, };
+
 static bool g_done = false;
 static SDL_AudioDeviceID g_dev = 0;
 static std::string g_filename = "";
@@ -34,6 +41,7 @@ static float g_frequency = 55.f /* A1 */, g_seconds = 1;
 static std::string g_frequency_to_note = "";
 static int g_octave = 4;
 static bool playing = true, compiled = false, unsaved = false;
+static float compiled_samples[10][12][num_compiled_samples];
 static const std::map<int, std::pair<char, int>> key_notes = {
   { SDLK_a, { 'C', 0 } },
   { SDLK_w, { 'C', 1 } },
@@ -75,9 +83,9 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
     *stream_ptr = 0;
     for (auto &freq_pair : passed_data->frequencies)
       if (freq_pair.second.on) {
-        double t = (double)(freq_pair.second.c++) * 1. / 48000.;
-        float value = (float)evaluate_definition(passed_data->program
-            , passed_data->definition, freq_pair.first, t);
+        float t = (float)(freq_pair.second.c++) * 1.f / sample_rate
+          , value = (float)evaluate_definition(passed_data->program
+              , passed_data->definition, freq_pair.first, t);
         *stream_ptr += 0.2f * value;
       }
     ++stream_ptr;
@@ -91,7 +99,7 @@ static ImVec4 r2v(int r, int g, int b) {
 static void init() {
   SDL_AudioSpec want, have;
   SDL_memset(&want, 0, sizeof(want));
-  want.freq = 48000;
+  want.freq = sample_rate;
   want.format = AUDIO_F32;
   want.channels = 1;
   want.samples = 4096;
@@ -111,6 +119,9 @@ static void init() {
   ImGui::PushStyleColor(ImGuiCol_Button,        r2v(186,  85,  85));
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, r2v(183, 106, 106));
   ImGui::PushStyleColor(ImGuiCol_ButtonActive,  r2v(159,  80,  80));
+
+  unsigned long long b = sizeof(compiled_samples), kb = b / 1024, mb = kb / 1024;
+  printf("sizeof(compiled_samples): b=%llu, kb=%llu, mb=%llu\n", b, kb, mb);
 }
 
 static void update(double dt, double t) {
@@ -279,7 +290,7 @@ void reload_file() {
 
 void replot() {
   g_samples.clear();
-  const float amplitude = 32760, sample_rate = 48000, scale = 1.f;
+  const float amplitude = 32760, scale = 1.f;
   for (uint64_t i = 0; i < (uint64_t)(sample_rate * g_seconds + 0.5f); i++)
     g_samples.push_back((float)evaluate_definition(g_passed_data->program
           , g_passed_data->definition, g_frequency
@@ -350,6 +361,19 @@ void recalculate_freq_to_note() {
 }
 
 void compile() {
+  const double percent_change = 1. / 10. / 12. / (double)num_compiled_samples;
+  double percentage = 0;
+  for (int o = 0; o <= 9; ++o)
+    for (int n = 0; n < 12; ++n) {
+      float f = note_to_freq(note_idx_to_char[n], o, note_idx_to_accidental[n]);
+      for (int t = 0; t < num_compiled_samples; ++t) {
+        compiled_samples[o][n][t] = evaluate_definition(g_passed_data->program
+            , g_passed_data->definition, f, t);
+        percentage += percent_change;
+        printf("percentage=%f\n", percentage * 100.);
+      }
+    }
+
   compiled = true;
 }
 
