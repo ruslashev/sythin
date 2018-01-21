@@ -223,9 +223,9 @@ bool imgui_init(SDL_Window *window) {
   io.RenderDrawListsFn = imgui_render_draw_lists;
   io.SetClipboardTextFn = imgui_set_clipboard_text;
   io.GetClipboardTextFn = imgui_get_clipboard_text;
-  io.ClipboardUserData = NULL;
+  io.ClipboardUserData = nullptr;
 
-  io.IniFilename = NULL;
+  io.IniFilename = nullptr;
 
   io.Fonts->AddFontFromFileTTF("res/Asap-Medium.ttf", 17.0f);
   io.Fonts->AddFontFromFileTTF("res/monaco.ttf", 15.0f);
