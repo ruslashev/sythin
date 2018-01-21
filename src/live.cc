@@ -33,7 +33,7 @@ static std::vector<float> g_samples;
 static float g_frequency = 55.f /* A1 */, g_seconds = 1;
 static std::string g_frequency_to_note = "";
 static int g_octave = 4;
-static bool playing = true;
+static bool playing = true, compiled = false, unsaved = false;
 static const std::map<int, std::pair<char, int>> key_notes = {
   { SDLK_a, { 'C', 0 } },
   { SDLK_w, { 'C', 1 } },
@@ -51,6 +51,7 @@ static const std::map<int, std::pair<char, int>> key_notes = {
 
 void replot();
 void recalculate_freq_to_note();
+void compile();
 
 static double note_to_freq(char note, int octave, int accidental_offset) {
   /* TODO static */ const std::map<char, int> semitone_offset = {
@@ -117,7 +118,7 @@ static void update(double dt, double t) {
 
 static void draw_gui() {
   if (ImGui::BeginMainMenuBar()) {
-    ImGui::Text("%s - sythin", g_filename.c_str());
+    ImGui::Text("%s%s - sythin", g_filename.c_str(), unsaved ? "*" : "");
     ImGui::EndMainMenuBar();
   }
 
@@ -139,12 +140,18 @@ static void draw_gui() {
   }
   ImGui::SameLine();
   if (ImGui::Button("Compile")) {
+    compile();
+  }
+  if (!compiled) {
+    ImGui::SameLine();
+    ImGui::TextWrapped("Warning: code is not compiled, all sounds will be "
+        "interpreted on the fly");
   }
 
   ImGui::PushFont(io.Fonts->Fonts[1]);
   if (playing)
     ImGui::PushStyleColor(ImGuiCol_FrameBg, r2v(20, 20, 20));
-  ImGui::InputTextMultiline("##source", g_source, sizeof(g_source)
+  unsaved |= ImGui::InputTextMultiline("##source", g_source, sizeof(g_source)
       , ImVec2(-1.f, -1.f), 0);
   if (playing)
     ImGui::PopStyleColor();
@@ -340,6 +347,10 @@ void recalculate_freq_to_note() {
     g_frequency_to_note += (side == plus) ? " + " : " - ";
     g_frequency_to_note += std::to_string(cent_index) + " cents";
   }
+}
+
+void compile() {
+  compiled = true;
 }
 
 void live(std::string _filename, const std::string &definition) {
