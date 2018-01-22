@@ -62,9 +62,10 @@ static std::string g_frequency_to_note = "";
 static int g_octave = 4;
 static bool playing = true, unsaved = false;
 static float computed_samples[10][12][num_computed_samples];
-static double computation_progress = 0;
+static double computation_progress = 0, g_time = 0, g_computation_time_started = 0;
 static std::thread *computation_thread = nullptr;
-static std::atomic<computing_status_t> computing_status { computing_status_t::not_computed };
+static std::atomic<computing_status_t> computing_status {
+  computing_status_t::not_computed };
 
 static double note_to_freq(char note, int octave, int accidental_offset) {
   /* TODO static */ const std::map<char, int> semitone_offset = {
@@ -130,6 +131,7 @@ static void init() {
 }
 
 static void update(double dt, double t) {
+  g_time = t;
 }
 
 static void draw_gui() {
@@ -178,6 +180,16 @@ static void draw_gui() {
       static char buf[32];
       sprintf(buf, "%.2f%%", (double)computation_progress * 100.);
       ImGui::ProgressBar(computation_progress, ImVec2(0, 0), buf);
+      if (computation_progress > 0) {
+        ImGui::SameLine();
+        double s = ((g_time - g_computation_time_started)
+            * (1. - computation_progress)) / computation_progress;
+        int m = s / 60.;
+        if (s > 60)
+          ImGui::Text("ETA %dm %.2fs", m, s - m * 60.);
+        else
+          ImGui::Text("ETA %.2fs", s);
+      }
       break;
     case computing_status_t::computed:
       ImGui::Text("[Computed]");
@@ -228,9 +240,10 @@ static void draw_gui() {
   ImGui::SameLine();
   if (ImGui::Button("Frequency presets"))
     ImGui::OpenPopup("Frequency presets");
-  ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * (1.f / 4.f), io.DisplaySize.x * (131.f / 500.f))
-      , ImGuiCond_Always);
-  if (ImGui::BeginPopupModal("Frequency presets", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+  ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * (1.f / 4.f)
+        , io.DisplaySize.x * (131.f / 500.f)), ImGuiCond_Always);
+  if (ImGui::BeginPopupModal("Frequency presets", nullptr
+        , ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::Columns(7, "presetz", false);
     for (int o = 0; o <= 6; ++o) {
       std::string C = "C" + std::to_string(o), Cs = "C#" + std::to_string(o),
@@ -392,10 +405,11 @@ void compute() {
     return;
   }
   computing_status = computing_status_t::computing;
+  g_computation_time_started = g_time;
 
+  computation_progress = 0;
   // const double progress_change = 1. / 10. / 12. / (double)num_computed_samples;
   const double progress_change = 1. / 12. / (double)num_computed_samples;
-  computation_progress = 0;
   // for (int o = 0; o <= 9; ++o)
   int o = g_octave;
     for (int n = 0; n < 12; ++n) {
