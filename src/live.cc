@@ -15,26 +15,23 @@ void recalculate_freq_to_note();
 void compute();
 
 struct passed_data_t {
-  struct frequency_data_t {
+  struct note_data_t {
     bool on;
     uint64_t c;
-    frequency_data_t() : c(0) {}
+    note_data_t() : on(false), c(0) {}
   };
   term_t *program;
   const std::string definition;
-  std::map<double, frequency_data_t> frequencies; // _very_ sloppy but works
+  std::map<int, note_data_t> notes; // sloppy but works
   passed_data_t(const std::string &definition)
     : program(nullptr)
     , definition(definition) {
   }
 };
 
-static const float sample_rate = 48000, num_computed_seconds = 1.2;
-static const int num_computed_samples = sample_rate * num_computed_seconds + 0.5f;
-static const int note_idx_to_char[] = { 'C', 'C', 'D', 'D', 'E', 'F', 'F', 'G',
-  'G', 'A', 'A', 'B' }
-  , note_idx_to_accidental[] = { 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, };
-static const std::map<int, std::pair<char, int>> key_notes = {
+const float sample_rate = 48000, num_computed_seconds = 1.2;
+const int num_computed_samples = sample_rate * num_computed_seconds + 0.5f;
+const std::map<int, std::pair<char, int>> key_notes = {
   { SDLK_a, { 'C', 0 } },
   { SDLK_w, { 'C', 1 } },
   { SDLK_s, { 'D', 0 } },
@@ -49,6 +46,8 @@ static const std::map<int, std::pair<char, int>> key_notes = {
   { SDLK_j, { 'B', 0 } }
 };
 enum class computing_status_t { not_computed, computing, stopped, computed };
+// note idx: [0; 120): # of semitones above C0 (to encode absolute note to int)
+// note char: 'C', 'A'...: literal char
 
 static bool g_done = false;
 static SDL_AudioDeviceID g_dev = 0;
@@ -61,14 +60,14 @@ static float g_frequency = 55.f /* A1 */, g_seconds = 1;
 static std::string g_frequency_to_note = "";
 static int g_octave = 4;
 static bool playing = true, unsaved = false;
-static float computed_samples[10][12][num_computed_samples];
+static float computed_samples[120][num_computed_samples];
 static double computation_progress = 0, g_time = 0, g_computation_time_started = 0;
 static std::thread *computation_thread = nullptr;
 static std::atomic<computing_status_t> computing_status {
   computing_status_t::not_computed };
 
-static double note_to_freq(char note, int octave, int accidental_offset) {
-  /* TODO static */ const std::map<char, int> semitone_offset = {
+static int note_details_to_note_idx(char note, int octave, int accidental_offset) {
+  const std::map<char, int> note_char_semitone_offset = {
     { 'C', -9 },
     { 'D', -7 },
     { 'E', -5 },
@@ -77,9 +76,14 @@ static double note_to_freq(char note, int octave, int accidental_offset) {
     { 'A',  0 },
     { 'B',  2 }
   };
-  int octave_diff = octave - 4, semitone_diff = semitone_offset.at(note)
-    + accidental_offset;
-  return 440. * pow(2., octave_diff) * pow(2., semitone_diff / 12.);
+  return octave * 12 + note_char_semitone_offset.at(note) + 9 + accidental_offset;
+}
+
+// TODO: LUT
+static double note_idx_to_freq(int note_idx) {
+  int octave = note_idx / 12, semitone_in_octave = note_idx - octave * 12
+    , octave_offset = octave - 4, semitone_offset = semitone_in_octave - 9;
+  return 440. * pow(2., octave_offset) * pow(2., semitone_offset / 12.);
 }
 
 static void audio_callback(void *userdata, uint8_t *stream, int len) {
@@ -87,13 +91,16 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
   float *stream_ptr = (float*)stream;
   for (int i = 0; i < 4096; ++i) {
     *stream_ptr = 0;
-    for (auto &freq_pair : passed_data->frequencies)
-      if (freq_pair.second.on) {
-        float t = (float)(freq_pair.second.c++) * 1.f / sample_rate
-          , value = (float)evaluate_definition(passed_data->program
-              , passed_data->definition, freq_pair.first, t);
-        *stream_ptr += 0.2f * value;
-      }
+    for (auto &freq_pair : passed_data->notes) {
+      if (!freq_pair.second.on)
+        continue;
+      if (computing_status == computing_status_t::computed)
+        *stream_ptr += 0.2f * computed_samples[freq_pair.first][freq_pair.second.c++];
+      else
+        *stream_ptr += 0.2f * (float)evaluate_definition(passed_data->program
+          , passed_data->definition, note_idx_to_freq(freq_pair.first)
+          , (float)(freq_pair.second.c++) / sample_rate);
+    }
     ++stream_ptr;
   }
 }
@@ -254,20 +261,24 @@ static void draw_gui() {
         As = "A#" + std::to_string(o), B = "B" + std::to_string(o);
 #define sel ImGui::Selectable
 #define rec recalculate_freq_to_note
-      if (sel(C.c_str()))  { g_frequency = note_to_freq('C', o, 0); rec(); }
-      if (sel(Cs.c_str())) { g_frequency = note_to_freq('C', o, 1); rec(); }
-      if (sel(D.c_str()))  { g_frequency = note_to_freq('D', o, 0); rec(); }
-      if (sel(Ds.c_str())) { g_frequency = note_to_freq('D', o, 1); rec(); }
-      if (sel(E.c_str()))  { g_frequency = note_to_freq('E', o, 0); rec(); }
-      if (sel(F.c_str()))  { g_frequency = note_to_freq('F', o, 0); rec(); }
-      if (sel(Fs.c_str())) { g_frequency = note_to_freq('F', o, 1); rec(); }
-      if (sel(G.c_str()))  { g_frequency = note_to_freq('G', o, 0); rec(); }
-      if (sel(Gs.c_str())) { g_frequency = note_to_freq('G', o, 1); rec(); }
-      if (sel(A.c_str()))  { g_frequency = note_to_freq('A', o, 0); rec(); }
-      if (sel(As.c_str())) { g_frequency = note_to_freq('A', o, 1); rec(); }
-      if (sel(B.c_str()))  { g_frequency = note_to_freq('B', o, 0); rec(); }
+#define i2f note_idx_to_freq
+#define d2i note_details_to_note_idx
+      if (sel(C.c_str()))  { g_frequency = i2f(d2i('C', o, 0)); rec(); }
+      if (sel(Cs.c_str())) { g_frequency = i2f(d2i('C', o, 1)); rec(); }
+      if (sel(D.c_str()))  { g_frequency = i2f(d2i('D', o, 0)); rec(); }
+      if (sel(Ds.c_str())) { g_frequency = i2f(d2i('D', o, 1)); rec(); }
+      if (sel(E.c_str()))  { g_frequency = i2f(d2i('E', o, 0)); rec(); }
+      if (sel(F.c_str()))  { g_frequency = i2f(d2i('F', o, 0)); rec(); }
+      if (sel(Fs.c_str())) { g_frequency = i2f(d2i('F', o, 1)); rec(); }
+      if (sel(G.c_str()))  { g_frequency = i2f(d2i('G', o, 0)); rec(); }
+      if (sel(Gs.c_str())) { g_frequency = i2f(d2i('G', o, 1)); rec(); }
+      if (sel(A.c_str()))  { g_frequency = i2f(d2i('A', o, 0)); rec(); }
+      if (sel(As.c_str())) { g_frequency = i2f(d2i('A', o, 1)); rec(); }
+      if (sel(B.c_str()))  { g_frequency = i2f(d2i('B', o, 0)); rec(); }
 #undef sel
 #undef rec
+#undef i2f
+#undef d2i
       ImGui::NextColumn();
     }
     ImGui::Columns(1);
@@ -293,10 +304,10 @@ static void key_event(unsigned long long key, bool down) {
   if (playing) {
     if (key_notes.count(key)) {
       const std::pair<char, int> note = key_notes.at(key);
-      double freq = note_to_freq(note.first, g_octave, note.second);
-      g_passed_data->frequencies[freq].on = down;
+      int note_idx = note_details_to_note_idx(note.first, g_octave, note.second);
+      g_passed_data->notes[note_idx].on = down;
       if (!down)
-        g_passed_data->frequencies[freq].c = 0;
+        g_passed_data->notes[note_idx].c = 0;
     }
     if (key >= SDLK_0 && key <= SDLK_9)
       g_octave = key - SDLK_0;
@@ -339,7 +350,7 @@ void replot() {
 }
 
 void recalculate_freq_to_note() {
-  std::vector<std::string> notes = {
+  const std::vector<std::string> note_idx_to_text = {
     "C0", "C#0", "D0", "D#0", "E0", "F0", "F#0", "G0", "G#0", "A0", "A#0", "B0",
     "C1", "C#1", "D1", "D#1", "E1", "F1", "F#1", "G1", "G#1", "A1", "A#1", "B1",
     "C2", "C#2", "D2", "D#2", "E2", "F2", "F#2", "G2", "G#2", "A2", "A#2", "B2",
@@ -392,7 +403,7 @@ void recalculate_freq_to_note() {
       side = (cent_index != 0) ? minus : plus;
   }
 
-  g_frequency_to_note = notes[A4_idx + r_index];
+  g_frequency_to_note = note_idx_to_text[A4_idx + r_index];
   if (cent_index) {
     g_frequency_to_note += (side == plus) ? " + " : " - ";
     g_frequency_to_note += std::to_string(cent_index) + " cents";
@@ -408,22 +419,19 @@ void compute() {
   g_computation_time_started = g_time;
 
   computation_progress = 0;
-  // const double progress_change = 1. / 10. / 12. / (double)num_computed_samples;
-  const double progress_change = 1. / 12. / (double)num_computed_samples;
-  // for (int o = 0; o <= 9; ++o)
-  int o = g_octave;
-    for (int n = 0; n < 12; ++n) {
-      float f = note_to_freq(note_idx_to_char[n], o, note_idx_to_accidental[n]);
-      for (int t = 0; t < num_computed_samples; ++t) {
-        if (computing_status == computing_status_t::stopped) {
-          computing_status = computing_status_t::not_computed;
-          return;
-        }
-        computed_samples[o][n][t] = evaluate_definition(g_passed_data->program
-            , g_passed_data->definition, f, t);
-        computation_progress += progress_change;
+  const double progress_change = 1. / 10. / 12. / (double)num_computed_samples;
+  for (int i = 0; i < 120; ++i) {
+    float f = note_idx_to_freq(i);
+    for (int t = 0; t < num_computed_samples; ++t) {
+      if (computing_status == computing_status_t::stopped) {
+        computing_status = computing_status_t::not_computed;
+        return;
       }
+      computed_samples[i][t] = evaluate_definition(g_passed_data->program
+          , g_passed_data->definition, f, (double)t / (double)sample_rate);
+      computation_progress += progress_change;
     }
+  }
 
   computing_status = computing_status_t::computed;
 }
