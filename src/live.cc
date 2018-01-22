@@ -11,7 +11,7 @@
 
 void replot();
 void recalculate_freq_to_note();
-void compile();
+void compute();
 
 struct passed_data_t {
   struct frequency_data_t {
@@ -29,8 +29,8 @@ struct passed_data_t {
 };
 
 static const float sample_rate = 48000;
-static const int num_compiled_seconds = 4
-    , num_compiled_samples = sample_rate * num_compiled_seconds + 0.5f;
+static const int num_computed_seconds = 4
+    , num_computed_samples = sample_rate * num_computed_seconds + 0.5f;
 static const int note_idx_to_char[] = { 'C', 'C', 'D', 'D', 'E', 'F', 'F', 'G',
   'G', 'A', 'A', 'B' }
   , note_idx_to_accidental[] = { 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, };
@@ -59,9 +59,10 @@ static std::vector<float> g_samples;
 static float g_frequency = 55.f /* A1 */, g_seconds = 1;
 static std::string g_frequency_to_note = "";
 static int g_octave = 4;
-static bool playing = true, compiled = false, unsaved = false;
-static float compiled_samples[10][12][num_compiled_samples];
-static double compilation_percentage = 0; // compute
+static bool playing = true, computed = false, unsaved = false;
+static float computed_samples[10][12][num_computed_samples];
+static double computation_progress = 0;
+std::thread computation_thread;
 
 static double note_to_freq(char note, int octave, int accidental_offset) {
   /* TODO static */ const std::map<char, int> semitone_offset = {
@@ -122,8 +123,8 @@ static void init() {
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, r2v(183, 106, 106));
   ImGui::PushStyleColor(ImGuiCol_ButtonActive,  r2v(159,  80,  80));
 
-  unsigned long long b = sizeof(compiled_samples), kb = b / 1024, mb = kb / 1024;
-  printf("sizeof(compiled_samples): b=%llu, kb=%llu, mb=%llu\n", b, kb, mb);
+  unsigned long long b = sizeof(computed_samples), kb = b / 1024, mb = kb / 1024;
+  printf("sizeof(computed_samples): b=%llu, kb=%llu, mb=%llu\n", b, kb, mb);
 }
 
 static void update(double dt, double t) {
@@ -152,15 +153,15 @@ static void draw_gui() {
   if (ImGui::Button("Save")) {
   }
   ImGui::SameLine();
-  if (ImGui::Button("Compile")) {
-    compile();
+  if (ImGui::Button("Compute")) {
+    computation_thread = std::thread(compute);
   }
-  if (!compiled) {
+  if (!computed) {
     ImGui::SameLine();
-    ImGui::TextWrapped("Warning: code is not compiled, all sounds will be "
+    ImGui::TextWrapped("Warning: code is not computed, all sounds will be "
         "interpreted on the fly");
   }
-  ImGui::ProgressBar(compilation_percentage, ImVec2(0, 0));
+  ImGui::ProgressBar(computation_progress, ImVec2(0, 0));
 
   ImGui::PushFont(io.Fonts->Fonts[1]);
   if (playing)
@@ -253,18 +254,17 @@ static void frame() {
 }
 
 static void key_event(unsigned long long key, bool down) {
-  if (!down && key == SDLK_ESCAPE)
-    g_done = true;
-
-  if (key_notes.count(key)) {
-    const std::pair<char, int> note = key_notes.at(key);
-    double freq = note_to_freq(note.first, g_octave, note.second);
-    g_passed_data->frequencies[freq].on = down;
-    if (!down)
-      g_passed_data->frequencies[freq].c = 0;
+  if (playing) {
+    if (key_notes.count(key)) {
+      const std::pair<char, int> note = key_notes.at(key);
+      double freq = note_to_freq(note.first, g_octave, note.second);
+      g_passed_data->frequencies[freq].on = down;
+      if (!down)
+        g_passed_data->frequencies[freq].c = 0;
+    }
+    if (key >= SDLK_0 && key <= SDLK_9)
+      g_octave = key - SDLK_0;
   }
-  if (key >= SDLK_0 && key <= SDLK_9)
-    g_octave = key - SDLK_0;
 }
 
 static void destroy() {
@@ -363,21 +363,21 @@ void recalculate_freq_to_note() {
   }
 }
 
-void compile() {
-  puts("compiling");
-  const double percent_change = 1. / 10. / 12. / (double)num_compiled_samples;
-  compilation_percentage = 0;
-  for (int o = 0; o <= 9; ++o)
+void compute() {
+  const double progress_change = 1. / 10. / 12. / (double)num_computed_samples;
+  computation_progress = 0;
+  // for (int o = 0; o <= 9; ++o)
+  int o = g_octave;
     for (int n = 0; n < 12; ++n) {
       float f = note_to_freq(note_idx_to_char[n], o, note_idx_to_accidental[n]);
-      for (int t = 0; t < num_compiled_samples; ++t) {
-        compiled_samples[o][n][t] = evaluate_definition(g_passed_data->program
+      for (int t = 0; t < num_computed_samples; ++t) {
+        computed_samples[o][n][t] = evaluate_definition(g_passed_data->program
             , g_passed_data->definition, f, t);
-        compilation_percentage += percent_change * 100.;
+        computation_progress += progress_change;
       }
     }
 
-  compiled = true;
+  computed = true;
 }
 
 void live(std::string _filename, const std::string &definition) {
