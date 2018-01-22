@@ -29,9 +29,8 @@ struct passed_data_t {
   }
 };
 
-static const float sample_rate = 48000;
-static const int num_computed_seconds = 4
-    , num_computed_samples = sample_rate * num_computed_seconds + 0.5f;
+static const float sample_rate = 48000, num_computed_seconds = 1.2;
+static const int num_computed_samples = sample_rate * num_computed_seconds + 0.5f;
 static const int note_idx_to_char[] = { 'C', 'C', 'D', 'D', 'E', 'F', 'F', 'G',
   'G', 'A', 'A', 'B' }
   , note_idx_to_accidental[] = { 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, };
@@ -181,8 +180,7 @@ static void draw_gui() {
       ImGui::ProgressBar(computation_progress, ImVec2(0, 0), buf);
       break;
     case computing_status_t::computed:
-      if (ImGui::Button("Computed")) {
-      }
+      ImGui::Text("[Computed]");
       break;
     default: die("halt and catch fire");
   }
@@ -266,8 +264,9 @@ static void draw_gui() {
     ImGui::EndPopup();
   }
 
-  ImGui::PlotLines("", g_samples.data()
-      , g_samples.size(), 0, g_passed_data->definition.c_str(), -1.f, 1.f, ImVec2(ImGui::GetContentRegionAvailWidth(), 200));
+  ImGui::PlotLines("", g_samples.data(), g_samples.size(), 0
+      , g_passed_data->definition.c_str(), -1.f, 1.f
+      , ImVec2(ImGui::GetContentRegionAvailWidth(), 200));
 
   ImGui::End();
 }
@@ -394,7 +393,8 @@ void compute() {
   }
   computing_status = computing_status_t::computing;
 
-  const double progress_change = 1. / 10. / 12. / (double)num_computed_samples;
+  // const double progress_change = 1. / 10. / 12. / (double)num_computed_samples;
+  const double progress_change = 1. / 12. / (double)num_computed_samples;
   computation_progress = 0;
   // for (int o = 0; o <= 9; ++o)
   int o = g_octave;
