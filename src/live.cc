@@ -8,6 +8,7 @@
 #include "imgui.hh"
 #include "../thirdparty/imgui/imgui.h"
 #include <thread>
+#include <atomic>
 
 void replot();
 void recalculate_freq_to_note();
@@ -48,6 +49,7 @@ static const std::map<int, std::pair<char, int>> key_notes = {
   { SDLK_u, { 'A', 1 } },
   { SDLK_j, { 'B', 0 } }
 };
+enum class computing_status_t { not_computed, computing, stopped, computed };
 
 static bool g_done = false;
 static SDL_AudioDeviceID g_dev = 0;
@@ -59,10 +61,11 @@ static std::vector<float> g_samples;
 static float g_frequency = 55.f /* A1 */, g_seconds = 1;
 static std::string g_frequency_to_note = "";
 static int g_octave = 4;
-static bool playing = true, computed = false, unsaved = false;
+static bool playing = true, unsaved = false;
 static float computed_samples[10][12][num_computed_samples];
 static double computation_progress = 0;
-std::thread computation_thread;
+static std::thread *computation_thread = nullptr;
+static std::atomic<computing_status_t> computing_status { computing_status_t::not_computed };
 
 static double note_to_freq(char note, int octave, int accidental_offset) {
   /* TODO static */ const std::map<char, int> semitone_offset = {
@@ -153,15 +156,36 @@ static void draw_gui() {
   if (ImGui::Button("Save")) {
   }
   ImGui::SameLine();
-  if (ImGui::Button("Compute")) {
-    computation_thread = std::thread(compute);
+  switch (computing_status) {
+    case computing_status_t::not_computed:
+      if (ImGui::Button("Compute")) {
+        if (computation_thread) {
+          computation_thread->join();
+          delete computation_thread;
+        }
+        computation_thread = new std::thread(compute);
+      }
+      ImGui::SameLine();
+      ImGui::TextWrapped("Warning: code is not computed, sounds will be "
+          "interpreted on the fly");
+      break;
+    case computing_status_t::stopped:
+    case computing_status_t::computing:
+      if (ImGui::Button("Stop")) {
+        computing_status = computing_status_t::stopped;
+        break;
+      }
+      ImGui::SameLine();
+      static char buf[32];
+      sprintf(buf, "%.2f%%", (double)computation_progress * 100.);
+      ImGui::ProgressBar(computation_progress, ImVec2(0, 0), buf);
+      break;
+    case computing_status_t::computed:
+      if (ImGui::Button("Computed")) {
+      }
+      break;
+    default: die("halt and catch fire");
   }
-  if (!computed) {
-    ImGui::SameLine();
-    ImGui::TextWrapped("Warning: code is not computed, all sounds will be "
-        "interpreted on the fly");
-  }
-  ImGui::ProgressBar(computation_progress, ImVec2(0, 0));
 
   ImGui::PushFont(io.Fonts->Fonts[1]);
   if (playing)
@@ -364,6 +388,12 @@ void recalculate_freq_to_note() {
 }
 
 void compute() {
+  if (computing_status == computing_status_t::stopped) {
+    computing_status = computing_status_t::not_computed;
+    return;
+  }
+  computing_status = computing_status_t::computing;
+
   const double progress_change = 1. / 10. / 12. / (double)num_computed_samples;
   computation_progress = 0;
   // for (int o = 0; o <= 9; ++o)
@@ -371,13 +401,17 @@ void compute() {
     for (int n = 0; n < 12; ++n) {
       float f = note_to_freq(note_idx_to_char[n], o, note_idx_to_accidental[n]);
       for (int t = 0; t < num_computed_samples; ++t) {
+        if (computing_status == computing_status_t::stopped) {
+          computing_status = computing_status_t::not_computed;
+          return;
+        }
         computed_samples[o][n][t] = evaluate_definition(g_passed_data->program
             , g_passed_data->definition, f, t);
         computation_progress += progress_change;
       }
     }
 
-  computed = true;
+  computing_status = computing_status_t::computed;
 }
 
 void live(std::string _filename, const std::string &definition) {
