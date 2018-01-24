@@ -1,4 +1,5 @@
 #include "lang.hh"
+#include <algorithm>
 
 std::string type_to_string(const type_t *const type) {
   if (type == nullptr)
@@ -211,6 +212,30 @@ bool messages_contain_no_errors(const std::vector<message_t> &messages) {
     if (message.kind == message_k::error)
       return false;
   return true;
+}
+
+std::vector<std::string> get_evaluatable_top_level_functions(const term_t
+    *const term) {
+  std::vector<std::string> fs;
+  for (const term_t *term : *term->program.terms) {
+    if (term->kind != term_k::definition)
+      continue;
+    term_t *main_lam = term->definition.body;
+    if (main_lam->kind != term_k::value)
+      continue;
+    if (main_lam->value->type.kind != type_k::lambda)
+      continue;
+    value_t *lam_freq = main_lam->value;
+    term_t *lam_time_term = lam_freq->lambda.body;
+    if (lam_time_term->kind != term_k::value)
+      continue;
+    if (lam_time_term->value->type.kind != type_k::lambda)
+      continue;
+    std::string def = *term->definition.name;
+    if (std::find(fs.begin(), fs.end(), def) == fs.end())
+      fs.push_back(def);
+  }
+  return fs;
 }
 
 void validate_top_level_functions(const term_t *const term

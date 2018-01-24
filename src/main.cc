@@ -49,6 +49,6 @@ int main(int argc, char **argv) {
     delete program;
   }
 
-  live(filename, "simple_release");
+  live(filename);
 }
 

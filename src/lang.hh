@@ -123,6 +123,7 @@ struct message_t {
 
 bool messages_contain_no_errors(const std::vector<message_t> &messages);
 
+std::vector<std::string> get_evaluatable_top_level_functions(const term_t *const term);
 void validate_top_level_functions(const term_t *const term
     , std::vector<message_t> *messages);
 

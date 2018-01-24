@@ -21,11 +21,11 @@ struct passed_data_t {
     note_data_t() : on(false), c(0) {}
   };
   term_t *program;
-  const std::string definition;
-  std::map<int, note_data_t> notes; // sloppy but works
-  passed_data_t(const std::string &definition)
+  std::string definition;
+  std::map<int, note_data_t> notes; // kinda sloppy but works
+  passed_data_t()
     : program(nullptr)
-    , definition(definition) {
+    , definition("") {
   }
 };
 
@@ -60,6 +60,8 @@ static float g_volume = 20.f, g_frequency = 55.f /* A1 */, g_seconds = 1;
 static std::string g_frequency_to_note = "";
 static int g_octave = 4;
 static bool playing = true, unsaved = false;
+static std::vector<std::string> g_definition_list;
+static int g_definition_list_selected_idx = -1;
 static float computed_samples[120][num_computed_samples];
 static double computation_progress = 0, g_time = 0, g_computation_time_started = 0;
 static std::thread *computation_thread = nullptr;
@@ -79,6 +81,15 @@ static int note_details_to_note_idx(char note, int octave, int accidental_offset
   return octave * 12 + note_char_semitone_offset.at(note) + 9 + accidental_offset;
 }
 
+bool definition_list_getter(void *data, int idx, const char **out_text) {
+  std::vector<std::string> *defs = (std::vector<std::string>*)data;
+  if (idx < (int)defs->size()) {
+    *out_text = defs->at(idx).c_str();
+    return true;
+  }
+  return false;
+}
+
 // TODO: LUT
 static double note_idx_to_freq(int note_idx) {
   int octave = note_idx / 12, semitone_in_octave = note_idx - octave * 12
@@ -91,6 +102,10 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
   float *stream_ptr = (float*)stream;
   for (int i = 0; i < 4096; ++i) {
     *stream_ptr = 0;
+    if (passed_data->definition == "") {
+      ++stream_ptr;
+      continue;
+    }
     for (auto &freq_pair : passed_data->notes) {
       if (!freq_pair.second.on)
         continue;
@@ -302,9 +317,18 @@ static void draw_gui() {
     ImGui::EndPopup();
   }
 
-  ImGui::PlotLines("", g_samples.data(), g_samples.size(), 0
-      , g_passed_data->definition.c_str(), -1.f, 1.f
-      , ImVec2(ImGui::GetContentRegionAvailWidth(), 200));
+  if (ImGui::Combo("definitions", &g_definition_list_selected_idx
+      , definition_list_getter, &g_definition_list, g_definition_list.size(), 8)) {
+    g_passed_data->definition = g_definition_list[g_definition_list_selected_idx];
+    replot();
+  }
+
+  if (g_passed_data->definition == "")
+    ImGui::Text("Please choose definition to play and plot");
+  else
+    ImGui::PlotLines("", g_samples.data(), g_samples.size(), 0
+        , g_passed_data->definition.c_str(), -1.f, 1.f
+        , ImVec2(ImGui::GetContentRegionAvailWidth(), 200));
 
   ImGui::End();
 }
@@ -349,7 +373,7 @@ void reload_file() {
   //   printf("%s: %s\n", message_kind_to_string(message.kind).c_str()
   //       , message.content.c_str());
 
-  replot();
+  g_definition_list = get_evaluatable_top_level_functions(g_passed_data->program);
 }
 
 void replot() {
@@ -450,10 +474,10 @@ void compute() {
   computing_status = computing_status_t::computed;
 }
 
-void live(std::string _filename, const std::string &definition) {
-  g_filename = _filename;
+void live(const std::string &filename) {
+  g_filename = filename;
 
-  g_passed_data = new passed_data_t(definition);
+  g_passed_data = new passed_data_t;
   reload_file();
 
   int window_width = 1200, window_height = (3. / 4.) * (double)window_width + 0.5;
