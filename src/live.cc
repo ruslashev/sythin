@@ -95,11 +95,13 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
       if (!freq_pair.second.on)
         continue;
       if (computing_status == computing_status_t::computed)
-        *stream_ptr += 0.2f * computed_samples[freq_pair.first][freq_pair.second.c++];
+        *stream_ptr += 0.2f * computed_samples[freq_pair.first][freq_pair.second.c];
       else
         *stream_ptr += 0.2f * (float)evaluate_definition(passed_data->program
           , passed_data->definition, note_idx_to_freq(freq_pair.first)
-          , (float)(freq_pair.second.c++) / sample_rate);
+          , (float)(freq_pair.second.c) / sample_rate);
+      if (freq_pair.second.c < num_computed_samples)
+        ++freq_pair.second.c;
     }
     ++stream_ptr;
   }
