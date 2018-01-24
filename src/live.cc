@@ -49,14 +49,14 @@ enum class computing_status_t { not_computed, computing, stopped, computed };
 // note idx: [0; 120): # of semitones above C0 (to encode absolute note to int)
 // note char: 'C', 'A'...: literal char
 
-static bool g_done = false;
+static bool g_done = false, g_show_test_window = false;
 static SDL_AudioDeviceID g_dev = 0;
 static std::string g_filename = "";
 static char g_source[100000]; // stupid
 static passed_data_t *g_passed_data = nullptr;
 static std::vector<message_t> g_messages;
 static std::vector<float> g_samples;
-static float g_frequency = 55.f /* A1 */, g_seconds = 1;
+static float g_volume = 20.f, g_frequency = 55.f /* A1 */, g_seconds = 1;
 static std::string g_frequency_to_note = "";
 static int g_octave = 4;
 static bool playing = true, unsaved = false;
@@ -95,9 +95,11 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
       if (!freq_pair.second.on)
         continue;
       if (computing_status == computing_status_t::computed)
-        *stream_ptr += 0.2f * computed_samples[freq_pair.first][freq_pair.second.c];
+        *stream_ptr += g_volume / 100.f
+          * computed_samples[freq_pair.first][freq_pair.second.c];
       else
-        *stream_ptr += 0.2f * (float)evaluate_definition(passed_data->program
+        *stream_ptr += g_volume / 100.f
+          * (float)evaluate_definition(passed_data->program
           , passed_data->definition, note_idx_to_freq(freq_pair.first)
           , (float)(freq_pair.second.c) / sample_rate);
       if (freq_pair.second.c < num_computed_samples)
@@ -144,14 +146,26 @@ static void update(double dt, double t) {
 }
 
 static void draw_gui() {
+  ImGuiIO& io = ImGui::GetIO();
+
   if (ImGui::BeginMainMenuBar()) {
     ImGui::Text("%s%s - sythin", g_filename.c_str(), unsaved ? "*" : "");
+    ImGui::SameLine();
+    ImGui::PushItemWidth(io.DisplaySize.x * (1.f / 5.f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, r2v(99, 52, 52));
+    ImGui::SliderFloat("", &g_volume, 0.f, 100.f, "volume %.3f", 1.6180339f);
+    ImGui::PopStyleColor(1);
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+    if (ImGui::SmallButton("Show test window"))
+      g_show_test_window ^= 1;
     ImGui::EndMainMenuBar();
   }
 
-  const float padding = 5, yoff = 25;
+  if (g_show_test_window)
+    ImGui::ShowTestWindow();
 
-  ImGuiIO& io = ImGui::GetIO();
+  const float padding = 5, yoff = 25;
 
   ImGui::SetNextWindowPos(ImVec2(padding, yoff + padding), ImGuiCond_Always);
   ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * (1.f / 2.f)
@@ -216,8 +230,6 @@ static void draw_gui() {
   playing = !ImGui::IsItemActive();
   ImGui::PopFont();
 
-  ImGui::ShowTestWindow();
-
   ImGui::End();
 
   ImGui::SetNextWindowPos(ImVec2(padding * 0.5f + io.DisplaySize.x
@@ -233,7 +245,7 @@ static void draw_gui() {
 
   ImGui::Text("Time");
   ImGui::SameLine(80);
-  ImGui::SliderFloat("seconds", &g_seconds, 0.1f, 5.0f, "%.3f");
+  ImGui::SliderFloat("seconds", &g_seconds, 0.1f, 5.f, "%.3f");
 
   ImGui::Text("Frequency");
 
