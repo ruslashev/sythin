@@ -1,0 +1,4 @@
+sine f t = (sin (2 * pi * f * t)),
+
+decay f t = (exp (-5 * t)),
+sine_decay f t = (sine f t) * (decay f t),
