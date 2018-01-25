@@ -9,10 +9,12 @@
 #include "../thirdparty/imgui/imgui.h"
 #include <thread>
 #include <atomic>
+#include <fstream>
 
 void replot();
 void recalculate_freq_to_note();
 void compute();
+void save();
 
 struct passed_data_t {
   struct note_data_t {
@@ -193,47 +195,55 @@ static void draw_gui() {
       | ImGuiWindowFlags_NoCollapse);
 
   if (ImGui::Button("Save")) {
+    save();
+    unsaved = false;
   }
   ImGui::SameLine();
-  switch (computing_status) {
-    case computing_status_t::not_computed:
-      if (ImGui::Button("Compute")) {
-        if (computation_thread) {
-          computation_thread->join();
-          delete computation_thread;
-        }
-        computation_thread = new std::thread(compute);
-      }
-      ImGui::SameLine();
-      ImGui::TextWrapped("Warning: code is not computed, sounds will be "
-          "interpreted on the fly");
-      break;
-    case computing_status_t::stopped:
-    case computing_status_t::computing:
-      if (ImGui::Button("Stop")) {
-        computing_status = computing_status_t::stopped;
-        break;
-      }
-      ImGui::SameLine();
-      static char buf[32];
-      sprintf(buf, "%.2f%%", (double)computation_progress * 100.);
-      ImGui::ProgressBar(computation_progress, ImVec2(0, 0), buf);
-      if (computation_progress > 0) {
-        ImGui::SameLine();
-        double s = ((g_time - g_computation_time_started)
-            * (1. - computation_progress)) / computation_progress;
-        int m = s / 60.;
-        if (s > 60)
-          ImGui::Text("ETA %dm %.2fs", m, s - m * 60.);
-        else
-          ImGui::Text("ETA %.2fs", s);
-      }
-      break;
-    case computing_status_t::computed:
-      ImGui::Text("[Computed]");
-      break;
-    default: die("halt and catch fire");
+  if (ImGui::Button("Compile")) {
   }
+  ImGui::SameLine();
+  if (g_passed_data->definition == "")
+    ImGui::Text("Please choose definition to play and plot");
+  else
+    switch (computing_status) {
+      case computing_status_t::not_computed:
+        if (ImGui::Button("Compute")) {
+          if (computation_thread) {
+            computation_thread->join();
+            delete computation_thread;
+          }
+          computation_thread = new std::thread(compute);
+        }
+        ImGui::SameLine();
+        ImGui::TextWrapped("Warning: code is not computed, sounds will be "
+            "interpreted on the fly");
+        break;
+      case computing_status_t::stopped:
+      case computing_status_t::computing:
+        if (ImGui::Button("Stop")) {
+          computing_status = computing_status_t::stopped;
+          break;
+        }
+        ImGui::SameLine();
+        static char buf[32];
+        sprintf(buf, "%.2f%%", (double)computation_progress * 100.);
+        ImGui::ProgressBar(computation_progress, ImVec2(0, 0), buf);
+        if (computation_progress > 0) {
+          ImGui::SameLine();
+          double s = ((g_time - g_computation_time_started)
+              * (1. - computation_progress)) / computation_progress;
+          int m = s / 60.;
+          if (s > 60)
+            ImGui::Text("ETA %dm %.2fs", m, s - m * 60.);
+          else
+            ImGui::Text("ETA %.2fs", s);
+        }
+        break;
+      case computing_status_t::computed:
+        ImGui::Text("[Computed]");
+        break;
+      default: die("halt and catch fire");
+    }
 
   ImGui::PushFont(io.Fonts->Fonts[1]);
   if (playing)
@@ -323,9 +333,7 @@ static void draw_gui() {
     replot();
   }
 
-  if (g_passed_data->definition == "")
-    ImGui::Text("Please choose definition to play and plot");
-  else
+  if (g_passed_data->definition != "")
     ImGui::PlotLines("", g_samples.data(), g_samples.size(), 0
         , g_passed_data->definition.c_str(), -1.f, 1.f
         , ImVec2(ImGui::GetContentRegionAvailWidth(), 200));
@@ -356,12 +364,22 @@ static void destroy() {
   SDL_CloseAudioDevice(g_dev);
 }
 
+void save() {
+  size_t len = 0;
+  for (; len < sizeof(g_source); ++len)
+    if (!g_source[len])
+      break;
+  std::ofstream outs(g_filename, std::ofstream::binary);
+  outs.write(g_source, len);
+  outs.close();
+}
+
 void reload_file() {
   if (g_passed_data->program)
     delete g_passed_data->program;
   g_messages.clear();
 
-  std::string source = read_file("test.sth");
+  std::string source = read_file(g_filename);
   strncpy(g_source, source.c_str(), sizeof(g_source));
 
   g_passed_data->program = lex_parse_string(g_source);
