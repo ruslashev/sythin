@@ -1,7 +1,7 @@
 warnings = -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable \
 		   -Wduplicated-cond -Wduplicated-branches -Wdouble-promotion \
 		   -Wnull-dereference -Wformat=2 -Wdisabled-optimization \
-		   -Wsuggest-override -Wlogical-op -Wtrampolines -Wfloat-equal
+		   -Wsuggest-override -Wlogical-op -Wtrampolines
 flags = -ggdb3 -Og -std=c++0x -fno-rtti -fno-exceptions
 libraries = -lSDL2 -lGLEW -lGL -lpthread
 CC = gcc

@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   if (seq) {
     exit(0);
 
-    std::string source = read_file("test.sth");
+    std::string source = read_file(filename);
 
     term_t *program = lex_parse_string(source);
     if (!program)
