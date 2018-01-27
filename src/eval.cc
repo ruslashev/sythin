@@ -191,6 +191,16 @@ static value_t* evaluate_term(const term_t *const term
       return evaluate_term(result, program, garbage);
       break;
     }
+    case term_k::if_else: {
+      value_t *condition = evaluate_term(term->if_else.condition, program, garbage);
+      if (condition->type.kind != type_k::number)
+        die("anything but numbers are not supported in if statements yet");
+      if ((int64_t)condition->number == 0)
+        return evaluate_term(term->if_else.else_expr, program, garbage);
+      else
+        return evaluate_term(term->if_else.then_expr, program, garbage);
+      break;
+    }
     case term_k::application:
       return evaluate_application(term, program, garbage);
     default:
@@ -218,6 +228,11 @@ static void clear_scopes_rec(term_t *term) {
           clear_scopes_rec(statement.value);
         clear_scopes_rec(statement.result);
       }
+      break;
+    case term_k::if_else:
+      clear_scopes_rec(term->if_else.condition);
+      clear_scopes_rec(term->if_else.then_expr);
+      clear_scopes_rec(term->if_else.else_expr);
       break;
     case term_k::value:
       switch (term->value->type.kind) {

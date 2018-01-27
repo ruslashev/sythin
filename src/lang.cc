@@ -108,6 +108,7 @@ std::string term_kind_to_string(term_k kind) {
     case term_k::application: return "application";
     case term_k::identifier:  return "identifier";
     case term_k::case_of:     return "case of";
+    case term_k::if_else:     return "if else";
     case term_k::value:       return "value";
     default:                  return "unhandled";
   }
@@ -138,6 +139,11 @@ term_t::~term_t() {
         delete statement.result;
       }
       delete case_of.statements;
+      break;
+    case term_k::if_else:
+      delete if_else.condition;
+      delete if_else.then_expr;
+      delete if_else.else_expr;
       break;
     case term_k::value:
       delete value;
@@ -203,6 +209,15 @@ void term_t::pretty_print() const {
         if (i != case_of.statements->size() - 1)
           printf(", ");
       }
+      break;
+    case term_k::if_else:
+      printf("if ");
+      if_else.condition->pretty_print();
+      printf(" then ");
+      if_else.then_expr->pretty_print();
+      printf(" else ");
+      if_else.else_expr->pretty_print();
+      printf(" end");
       break;
     case term_k::value:
       value->pretty_print();
@@ -447,6 +462,20 @@ term_t* term_case_of(term_t *value
       statement.value->parent = t;
     statement.result->parent = t;
   }
+  t->parent = nullptr;
+  t->scope = nullptr;
+  return t;
+}
+
+term_t* term_if_else(term_t *condition, term_t *then_expr, term_t *else_expr) {
+  term_t *t = new term_t;
+  t->kind = term_k::if_else;
+  t->if_else.condition = condition;
+  t->if_else.then_expr = then_expr;
+  t->if_else.else_expr = else_expr;
+  t->if_else.condition->parent = t;
+  t->if_else.then_expr->parent = t;
+  t->if_else.else_expr->parent = t;
   t->parent = nullptr;
   t->scope = nullptr;
   return t;

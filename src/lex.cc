@@ -38,6 +38,9 @@ std::string token_kind_to_string(int kind) {
     case TK_BUILTIN_MINUS:  return "TK_BUILTIN_MINUS";
     case TK_BUILTIN_MULT:   return "TK_BUILTIN_MULT";
     case TK_BUILTIN_DIVIDE: return "TK_BUILTIN_DIVIDE";
+    case TK_WORD_IF:        return "TK_WORD_IF";
+    case TK_WORD_THEN:      return "TK_WORD_THEN";
+    case TK_WORD_ELSE:      return "TK_WORD_ELSE";
     case TK_OP_PLUS:        return "TK_OP_PLUS";
     case TK_OP_MINUS:       return "TK_OP_MINUS";
     case TK_OP_MULT:        return "TK_OP_MULT";
@@ -246,7 +249,10 @@ token_t* lexer_t::next_token() {
         { "divide", TK_BUILTIN_DIVIDE },
         { "case",   TK_WORD_CASE },
         { "of",     TK_WORD_OF },
-        { "end",    TK_WORD_END }
+        { "end",    TK_WORD_END },
+        { "if",     TK_WORD_IF },
+        { "then",   TK_WORD_THEN },
+        { "else",   TK_WORD_ELSE }
       };
       if (reserved_identifiers.count(identifier))
         return _token_primitive(reserved_identifiers.at(identifier));

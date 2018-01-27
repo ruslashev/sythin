@@ -1,10 +1,16 @@
+decay_exp f t = (exp (-5 * t)),
+
 sine f t = (sin (2 * pi * f * t)),
 
-decay_exp f t = (exp (-5 * t)),
 sine_decay f t = (sine f t) * (decay_exp f t),
 
-sign x = case x > 0 of 1 -> 1, 0 -> (case x < 0 of 1 -> -1, 0 -> 0 end) end,
-# sign x = if x > 0 then 1 else (if x < 0 then -1 else 0 end) end,
+sign x = if x > 0 then 1 else (if x < 0 then -1 else 0 end) end,
+
+# if X then A else B end
+# case X of 1 -> A, 0 -> B end
+
+# sign x = case x > 0 of 1 -> 1, 0 -> (case x < 0 of 1 -> -1, 0 -> 0 end) end,
 
 saw f t = (sign (sine f t)),
+saw_decay f t = (saw f t) * (decay_exp f t),
 

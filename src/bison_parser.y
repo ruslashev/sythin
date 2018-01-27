@@ -15,13 +15,16 @@
 %token <token> TK_WORD_OF TK_RARROW TK_NUMBER TK_LAMBDA TK_DOT TK_WORD_END
 %token <token> TK_ANY TK_BUILTIN_SIN TK_BUILTIN_EXP TK_BUILTIN_INV
 %token <token> TK_BUILTIN_PLUS TK_BUILTIN_MINUS TK_BUILTIN_MULT TK_BUILTIN_DIVIDE
+%token <token> TK_WORD_IF TK_WORD_THEN TK_WORD_ELSE
 %token <token> TK_OP_PLUS TK_OP_MINUS TK_OP_MULT TK_OP_DIVIDE TK_OP_CEQ
 %token <token> TK_OP_CNEQ TK_OP_CLT TK_OP_CLTEQ TK_OP_CGT TK_OP_CGTEQ
+
 %left TK_OP_MINUS TK_OP_PLUS
 %left TK_OP_MULT TK_OP_DIVIDE
 %left TK_OP_CEQ TK_OP_CNEQ TK_OP_CLT TK_OP_CLTEQ TK_OP_CGT TK_OP_CGTEQ
 
-%type <term> program definition body simple identifier case_of case_value binary_op;
+%type <term> program definition body simple identifier case_of case_value;
+%type <term> if_else binary_op;
 %type <term_list> definition_list identifier_list simple_list;
 %type <case_statement_list> case_statement_list;
 %type <case_statement> case_statement;
@@ -73,6 +76,7 @@ simple_list : simple_list simple { $$->push_back($2); }
 
 simple : identifier { $$ = $1; }
        | case_of { $$ = $1; }
+       | if_else { $$ = $1; }
        | value { $$ = term_value($1); }
        | binary_op
        | TK_LPAREN body TK_RPAREN { $$ = $2; };
@@ -138,6 +142,10 @@ case_statement : case_value TK_RARROW body {
 
 case_value : body { $$ = $1; }
            | TK_ANY { $$ = nullptr; };
+
+if_else : TK_WORD_IF body TK_WORD_THEN body TK_WORD_ELSE body TK_WORD_END {
+          $$ = term_if_else($2, $4, $6);
+        };
 
 value : number { $$ = $1; }
       | lambda { $$ = $1; }

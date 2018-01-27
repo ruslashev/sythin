@@ -387,6 +387,8 @@ void reload_file() {
   if (!g_passed_data->program)
     exit(1);
 
+  g_passed_data->program->pretty_print();
+
   validate_top_level_functions(g_passed_data->program, &g_messages);
   // for (const message_t &message : messages)
   //   printf("%s: %s\n", message_kind_to_string(message.kind).c_str()

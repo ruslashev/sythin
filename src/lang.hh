@@ -71,6 +71,7 @@ enum class term_k {
   application,
   identifier,
   case_of,
+  if_else,
   value
 };
 
@@ -104,6 +105,11 @@ struct term_t {
       term_t *value;
       std::vector<case_statement> *statements;
     } case_of;
+    struct {
+      term_t *condition;
+      term_t *then_expr;
+      term_t *else_expr;
+    } if_else;
     value_t *value;
   };
 
@@ -157,5 +163,6 @@ term_t* term_application(term_t *lambda, term_t *parameter);
 term_t* term_identifier(const std::string &name);
 term_t* term_case_of(term_t *value
     , std::vector<term_t::case_statement> *statements);
+term_t* term_if_else(term_t *condition, term_t *then_expr, term_t *else_expr);
 term_t* term_value(value_t *value);
 
