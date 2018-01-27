@@ -38,7 +38,10 @@ enum class builtin_k {
   cgt,
   cgteq,
   mod,
-  abs
+  abs,
+  floor,
+  round,
+  ceil
 };
 
 std::string builtin_kind_to_string(builtin_k kind);
@@ -156,6 +159,9 @@ builtin_t* builtin_cgt();
 builtin_t* builtin_cgteq();
 builtin_t* builtin_mod();
 builtin_t* builtin_abs();
+builtin_t* builtin_floor();
+builtin_t* builtin_round();
+builtin_t* builtin_ceil();
 
 value_t* value_number(double number);
 value_t* value_lambda(const std::string &arg, term_t *body);

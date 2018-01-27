@@ -56,6 +56,30 @@ static value_t* evaluate_application(const term_t *const term
           garbage->push_back(result);
           return result;
         }
+        case builtin_k::floor: {
+          if (applied_parameter->type.kind != type_k::number)
+            die("builtin floor/1: unexpected parameter of type <%s>, expected"
+                " <number>" , type_to_string(&applied_parameter->type).c_str());
+          value_t *result = value_number(std::floor(applied_parameter->number));
+          garbage->push_back(result);
+          return result;
+        }
+        case builtin_k::round: {
+          if (applied_parameter->type.kind != type_k::number)
+            die("builtin round/1: unexpected parameter of type <%s>, expected"
+                " <number>" , type_to_string(&applied_parameter->type).c_str());
+          value_t *result = value_number(std::round(applied_parameter->number));
+          garbage->push_back(result);
+          return result;
+        }
+        case builtin_k::ceil: {
+          if (applied_parameter->type.kind != type_k::number)
+            die("builtin ceil/1: unexpected parameter of type <%s>, expected"
+                " <number>" , type_to_string(&applied_parameter->type).c_str());
+          value_t *result = value_number(std::ceil(applied_parameter->number));
+          garbage->push_back(result);
+          return result;
+        }
         case builtin_k::plus:
         case builtin_k::minus:
         case builtin_k::mult:

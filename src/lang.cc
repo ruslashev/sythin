@@ -47,6 +47,9 @@ std::string builtin_kind_to_string(builtin_k kind) {
     case builtin_k::cgteq:  return "cgteq";
     case builtin_k::mod:    return "mod";
     case builtin_k::abs:    return "abs";
+    case builtin_k::floor:  return "floor";
+    case builtin_k::round:  return "round";
+    case builtin_k::ceil:   return "ceil";
     default:                return "unhandled";
   }
 }
@@ -397,6 +400,24 @@ builtin_t* builtin_abs() {
   builtin_t *b = new builtin_t;
   b->kind = builtin_k::abs;
   b->binary_op.x = nullptr;
+  return b;
+}
+
+builtin_t* builtin_floor() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::floor;
+  return b;
+}
+
+builtin_t* builtin_round() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::round;
+  return b;
+}
+
+builtin_t* builtin_ceil() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::ceil;
   return b;
 }
 

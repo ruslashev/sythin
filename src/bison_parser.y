@@ -15,7 +15,7 @@
 %token <token> TK_WORD_OF TK_RARROW TK_NUMBER TK_LAMBDA TK_DOT TK_WORD_END
 %token <token> TK_ANY TK_BUILTIN_SIN TK_BUILTIN_EXP TK_BUILTIN_INV
 %token <token> TK_BUILTIN_PLUS TK_BUILTIN_MINUS TK_BUILTIN_MULT TK_BUILTIN_DIVIDE
-%token <token> TK_BUILTIN_ABS
+%token <token> TK_BUILTIN_ABS TK_BUILTIN_FLOOR TK_BUILTIN_ROUND TK_BUILTIN_CEIL
 %token <token> TK_WORD_IF TK_WORD_THEN TK_WORD_ELSE
 %token <token> TK_OP_PLUS TK_OP_MINUS TK_OP_MULT TK_OP_DIVIDE TK_OP_CEQ
 %token <token> TK_OP_CNEQ TK_OP_CLT TK_OP_CLTEQ TK_OP_CGT TK_OP_CGTEQ
@@ -171,5 +171,8 @@ builtin : TK_BUILTIN_PLUS { $$ = builtin_plus(); }
         | TK_BUILTIN_SIN { $$ = builtin_sin(); }
         | TK_BUILTIN_EXP { $$ = builtin_exp(); }
         | TK_BUILTIN_INV { $$ = builtin_inv(); }
-        | TK_BUILTIN_ABS { $$ = builtin_abs(); };
+        | TK_BUILTIN_ABS { $$ = builtin_abs(); }
+        | TK_BUILTIN_FLOOR { $$ = builtin_floor(); }
+        | TK_BUILTIN_ROUND { $$ = builtin_round(); }
+        | TK_BUILTIN_CEIL { $$ = builtin_ceil(); };
 

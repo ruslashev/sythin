@@ -17,3 +17,6 @@ square_decay f t = (square f t) * (decay_exp f t),
 # triangle f t = let p = 1 / f in
 triangle f t = 2 * f * ((abs ((t % (1 / f)) - (1 / (2 * f)))) - (1 / (4 * f))),
 triangle_decay f t = (triangle f t) * (decay_exp f t),
+
+saw f t = 2 * (f * t - (floor (1 / 2 + f * t))),
+saw_decay f t = (saw f t) * (decay_exp f t),
