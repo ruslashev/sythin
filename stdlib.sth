@@ -11,8 +11,8 @@ sign x = if x > 0 then 1 else (if x < 0 then -1 else 0 end) end,
 
 # sign x = case x > 0 of 1 -> 1, 0 -> (case x < 0 of 1 -> -1, 0 -> 0 end) end,
 
-saw f t = (sign (sine f t)),
-saw_decay f t = (saw f t) * (decay_exp f t),
+square f t = (sign (sine f t)),
+square_decay f t = (square f t) * (decay_exp f t),
 
 # triangle f t = let p = 1 / f in
 triangle f t = 2 * f * ((abs ((t % (1 / f)) - (1 / (2 * f)))) - (1 / (4 * f))),
