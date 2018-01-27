@@ -28,8 +28,6 @@ static value_t* evaluate_application(const term_t *const term
           if (applied_parameter->type.kind != type_k::number)
             die("builtin sin/1: unexpected parameter of type <%s>, expected"
                 " <number>" , type_to_string(&applied_parameter->type).c_str());
-          // applied_parameter->number.value = sin(applied_parameter->number.value);
-          // return applied_parameter;
           value_t *result = value_number(sin(applied_parameter->number));
           garbage->push_back(result);
           return result;

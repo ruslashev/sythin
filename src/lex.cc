@@ -48,6 +48,8 @@ std::string token_kind_to_string(int kind) {
     case TK_OP_CLTEQ:       return "TK_OP_CLTEQ";
     case TK_OP_CGT:         return "TK_OP_CGT";
     case TK_OP_CGTEQ:       return "TK_OP_CGTEQ";
+
+    case TK_EOF:            return "TK_EOF";
     default:                return "unhandled";
   }
 }
@@ -223,9 +225,9 @@ void lexer_t::from_string(const std::string &source) {
  */
 token_t* lexer_t::next_token() {
   while (1) {
-    while (_is_nonnl_whitespace(_last_char) || _is_newline(_last_char))
+    if (_is_nonnl_whitespace(_last_char) || _is_newline(_last_char))
       _next_char();
-    if (_is_alpha(_last_char)) {
+    else if (_is_alpha(_last_char)) {
       std::string identifier = "";
       identifier += _last_char;
       _next_char();
@@ -249,8 +251,7 @@ token_t* lexer_t::next_token() {
       if (reserved_identifiers.count(identifier))
         return _token_primitive(reserved_identifiers.at(identifier));
       return _token_identifier(identifier);
-    }
-    if (_last_char == '+' || _last_char == '-' || _is_digit(_last_char)
+    } else if (_last_char == '+' || _last_char == '-' || _is_digit(_last_char)
         || _last_char == '.') {
       int sign = 1;
       if (_last_char == '+')
@@ -302,22 +303,13 @@ token_t* lexer_t::next_token() {
         return _token_primitive(TK_RARROW);
       } else
         die("unexpected character in number at %d:%d", _line, _column);
-    }
-    if (_last_char == '#') {
+    } else if (_last_char == '#') {
       _next_char();
       while (!_is_newline(_last_char))
         _next_char();
       _next_char();
       continue;
-    }
-    if (_is_punct(_last_char)) {
-      std::string punct = "";
-      punct += _last_char;
-      _next_char();
-      while (_is_punct(_last_char)) {
-        punct += _last_char;
-        _next_char();
-      }
+    } else if (_is_punct(_last_char)) {
       const std::map<std::string, int> punctuation_tokens = {
         { "+",   TK_OP_PLUS },
         { "-",   TK_OP_MINUS },
@@ -336,13 +328,20 @@ token_t* lexer_t::next_token() {
         { "<",   TK_OP_CGT },
         { "=<",  TK_OP_CGTEQ }
       };
-      if (punctuation_tokens.count(punct))
-        return _token_primitive(punctuation_tokens.at(punct));
-    }
-    if (_last_char == 0)
+      std::string punct = "";
+      do {
+        punct += _last_char;
+        _next_char();
+        if (punctuation_tokens.count(punct))
+          return _token_primitive(punctuation_tokens.at(punct));
+      } while (_is_punct(_last_char));
+      printf("%d:%d: unrecognized punct \"%s\"\n", _line, _column, punct.c_str());
+    } else if (_last_char == 0)
       return _token_primitive(TK_EOF);
-    printf("unrecognized char '%c'\n", _last_char);
-    _next_char();
+    else {
+      printf("%d:%d: unrecognized char '%c'\n", _line, _column, _last_char);
+      _next_char();
+    }
   }
 }
 
