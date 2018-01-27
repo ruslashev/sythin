@@ -15,13 +15,16 @@
 %token <token> TK_WORD_OF TK_RARROW TK_NUMBER TK_LAMBDA TK_DOT TK_WORD_END
 %token <token> TK_ANY TK_BUILTIN_SIN TK_BUILTIN_EXP TK_BUILTIN_INV
 %token <token> TK_BUILTIN_PLUS TK_BUILTIN_MINUS TK_BUILTIN_MULT TK_BUILTIN_DIVIDE
+%token <token> TK_BUILTIN_ABS
 %token <token> TK_WORD_IF TK_WORD_THEN TK_WORD_ELSE
 %token <token> TK_OP_PLUS TK_OP_MINUS TK_OP_MULT TK_OP_DIVIDE TK_OP_CEQ
 %token <token> TK_OP_CNEQ TK_OP_CLT TK_OP_CLTEQ TK_OP_CGT TK_OP_CGTEQ
+%token <token> TK_OP_MOD
 
 %left TK_OP_MINUS TK_OP_PLUS
 %left TK_OP_MULT TK_OP_DIVIDE
 %left TK_OP_CEQ TK_OP_CNEQ TK_OP_CLT TK_OP_CLTEQ TK_OP_CGT TK_OP_CGTEQ
+%left TK_OP_MOD
 
 %type <term> program definition body simple identifier case_of case_value;
 %type <term> if_else binary_op;
@@ -120,6 +123,10 @@ binary_op : simple TK_OP_PLUS simple { // not the prettiest code
            | simple TK_OP_CGTEQ simple {
                $$ = term_application(term_application(term_value(value_builtin(
                builtin_cgteq())), $1), $3);
+           }
+           | simple TK_OP_MOD simple {
+               $$ = term_application(term_application(term_value(value_builtin(
+               builtin_mod())), $1), $3);
            };
 
 case_of : TK_WORD_CASE body TK_WORD_OF case_statement_list TK_WORD_END {
@@ -163,5 +170,6 @@ builtin : TK_BUILTIN_PLUS { $$ = builtin_plus(); }
         | TK_BUILTIN_DIVIDE { $$ = builtin_divide(); }
         | TK_BUILTIN_SIN { $$ = builtin_sin(); }
         | TK_BUILTIN_EXP { $$ = builtin_exp(); }
-        | TK_BUILTIN_INV { $$ = builtin_inv(); };
+        | TK_BUILTIN_INV { $$ = builtin_inv(); }
+        | TK_BUILTIN_ABS { $$ = builtin_abs(); };
 

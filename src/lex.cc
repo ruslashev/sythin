@@ -38,6 +38,7 @@ std::string token_kind_to_string(int kind) {
     case TK_BUILTIN_MINUS:  return "TK_BUILTIN_MINUS";
     case TK_BUILTIN_MULT:   return "TK_BUILTIN_MULT";
     case TK_BUILTIN_DIVIDE: return "TK_BUILTIN_DIVIDE";
+    case TK_BUILTIN_ABS:    return "TK_BUILTIN_ABS";
     case TK_WORD_IF:        return "TK_WORD_IF";
     case TK_WORD_THEN:      return "TK_WORD_THEN";
     case TK_WORD_ELSE:      return "TK_WORD_ELSE";
@@ -51,6 +52,7 @@ std::string token_kind_to_string(int kind) {
     case TK_OP_CLTEQ:       return "TK_OP_CLTEQ";
     case TK_OP_CGT:         return "TK_OP_CGT";
     case TK_OP_CGTEQ:       return "TK_OP_CGTEQ";
+    case TK_OP_MOD:         return "TK_OP_MOD";
 
     case TK_EOF:            return "TK_EOF";
     default:                return "unhandled";
@@ -110,7 +112,7 @@ bool lexer_t::_is_digit(char x) {
 bool lexer_t::_is_punct(char x) {
   const std::set<char> punctuation_chars = {
     '+', '-', '*', '/', '=', '(',
-    ')', '\\', ',', '_', '>', '<'
+    ')', '\\', ',', '_', '>', '<', '%'
   };
   return punctuation_chars.count(_last_char) == 1;
 }
@@ -247,6 +249,7 @@ token_t* lexer_t::next_token() {
         { "minus",  TK_BUILTIN_MINUS },
         { "mult",   TK_BUILTIN_MULT },
         { "divide", TK_BUILTIN_DIVIDE },
+        { "abs",    TK_BUILTIN_ABS },
         { "case",   TK_WORD_CASE },
         { "of",     TK_WORD_OF },
         { "end",    TK_WORD_END },
@@ -259,12 +262,14 @@ token_t* lexer_t::next_token() {
       return _token_identifier(identifier);
     } else if (_last_char == '+' || _last_char == '-' || _is_digit(_last_char)
         || _last_char == '.') {
-      int sign = 1;
-      if (_last_char == '+')
+      int sign = 1, explicit_sign = 0;
+      if (_last_char == '+') {
+        explicit_sign = 1;
         _next_char();
-      else if (_last_char == '-') {
-        _next_char();
+      } else if (_last_char == '-') {
+        explicit_sign = -1;
         sign = -1;
+        _next_char();
       }
       if (_is_digit(_last_char)) {
         double decimal = _lex_number_decimal();
@@ -302,11 +307,17 @@ token_t* lexer_t::next_token() {
                 * pow(10., exponent));
           else
             return _token_number(sign * fraction);
-        } else
+        } else if (explicit_sign != 0)
+          die("%d:%d: unexpected dot", _line, _column);
+        else
           return _token_primitive(TK_DOT);
-      } else if (_last_char == '>' && sign == -1) {
+      } else if (_last_char == '>' && explicit_sign == -1) {
         _next_char();
         return _token_primitive(TK_RARROW);
+      } else if (explicit_sign == 1) {
+        return _token_primitive(TK_OP_PLUS);
+      } else if (explicit_sign == -1) {
+        return _token_primitive(TK_OP_MINUS);
       } else
         die("unexpected character in number at %d:%d", _line, _column);
     } else if (_last_char == '#') {
@@ -332,7 +343,8 @@ token_t* lexer_t::next_token() {
         { ">",   TK_OP_CLT },
         { ">=",  TK_OP_CLTEQ },
         { "<",   TK_OP_CGT },
-        { "=<",  TK_OP_CGTEQ }
+        { "=<",  TK_OP_CGTEQ },
+        { "%",   TK_OP_MOD }
       };
       std::string punct = "";
       do {

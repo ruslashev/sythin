@@ -48,6 +48,14 @@ static value_t* evaluate_application(const term_t *const term
           garbage->push_back(result);
           return result;
         }
+        case builtin_k::abs: {
+          if (applied_parameter->type.kind != type_k::number)
+            die("builtin abs/1: unexpected parameter of type <%s>, expected"
+                " <number>" , type_to_string(&applied_parameter->type).c_str());
+          value_t *result = value_number(std::fabs(applied_parameter->number));
+          garbage->push_back(result);
+          return result;
+        }
         case builtin_k::plus:
         case builtin_k::minus:
         case builtin_k::mult:
@@ -58,6 +66,7 @@ static value_t* evaluate_application(const term_t *const term
         case builtin_k::clteq:
         case builtin_k::cgt:
         case builtin_k::cgteq:
+        case builtin_k::mod:
           if (lambda->builtin->binary_op.x == nullptr) {
             lambda->builtin->binary_op.x = term->application.parameter;
             return lambda;
@@ -116,6 +125,10 @@ static value_t* evaluate_application(const term_t *const term
               case builtin_k::cgteq:
                 result = value_number(stored_parameter->number
                     <= applied_parameter->number);
+                break;
+              case builtin_k::mod:
+                result = value_number((int64_t)stored_parameter->number
+                    % (int64_t)applied_parameter->number);
                 break;
               default: // silence warning
                 break;

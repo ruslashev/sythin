@@ -45,6 +45,8 @@ std::string builtin_kind_to_string(builtin_k kind) {
     case builtin_k::clteq:  return "clteq";
     case builtin_k::cgt:    return "cgt";
     case builtin_k::cgteq:  return "cgteq";
+    case builtin_k::mod:    return "mod";
+    case builtin_k::abs:    return "abs";
     default:                return "unhandled";
   }
 }
@@ -61,6 +63,8 @@ builtin_t::~builtin_t() {
     case builtin_k::clteq:
     case builtin_k::cgt:
     case builtin_k::cgteq:
+    case builtin_k::mod:
+    case builtin_k::abs:
       if (binary_op.x)
         delete binary_op.x;
       break;
@@ -378,6 +382,20 @@ builtin_t* builtin_cgt() {
 builtin_t* builtin_cgteq() {
   builtin_t *b = new builtin_t;
   b->kind = builtin_k::cgteq;
+  b->binary_op.x = nullptr;
+  return b;
+}
+
+builtin_t* builtin_mod() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::mod;
+  b->binary_op.x = nullptr;
+  return b;
+}
+
+builtin_t* builtin_abs() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::abs;
   b->binary_op.x = nullptr;
   return b;
 }
