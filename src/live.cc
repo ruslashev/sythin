@@ -11,6 +11,7 @@
 #include <atomic>
 #include <fstream>
 
+void reload_file();
 void replot();
 void recalculate_freq_to_note();
 void compute();
@@ -200,6 +201,7 @@ static void draw_gui() {
   }
   ImGui::SameLine();
   if (ImGui::Button("Compile")) {
+    reload_file();
   }
   ImGui::SameLine();
   if (g_passed_data->definition == "")

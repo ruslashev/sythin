@@ -23,8 +23,10 @@ void gfx_init(const char *title, int width, int height) {
 
   glcontext = SDL_GL_CreateContext(window);
 
-  if (SDL_GL_SetSwapInterval(0) == -1)
-    printf("warning: failed to set vsync: %s\n", SDL_GetError());
+  // turning vsync off causes imgui's timing issues manifesting in
+  // non-input keys (arrow keys etc.) registering several times
+  // if (SDL_GL_SetSwapInterval(0) == -1)
+  //   printf("warning: failed to set vsync: %s\n", SDL_GetError());
 
   GLenum err = glewInit();
   if (err != GLEW_OK)
@@ -65,10 +67,10 @@ void gfx_main_loop(bool *done
       t += dt;
       accumulator -= dt;
     }
-    glViewport(0, 0, (int)ImGui::GetIO().DisplaySize.x
-        , (int)ImGui::GetIO().DisplaySize.y);
     imgui_new_frame(window);
     frame_cb();
+    glViewport(0, 0, (int)ImGui::GetIO().DisplaySize.x
+        , (int)ImGui::GetIO().DisplaySize.y);
     ImGui::Render();
     SDL_GL_SwapWindow(window);
   }
