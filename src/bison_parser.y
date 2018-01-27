@@ -21,7 +21,7 @@
 %left TK_OP_MULT TK_OP_DIVIDE
 %left TK_OP_CEQ TK_OP_CNEQ TK_OP_CLT TK_OP_CLTEQ TK_OP_CGT TK_OP_CGTEQ
 
-%type <term> program definition body simple identifier case_of case_value;
+%type <term> program definition body simple identifier case_of case_value binary_op;
 %type <term_list> definition_list identifier_list simple_list;
 %type <case_statement_list> case_statement_list;
 %type <case_statement> case_statement;
@@ -74,37 +74,49 @@ simple_list : simple_list simple { $$->push_back($2); }
 simple : identifier { $$ = $1; }
        | case_of { $$ = $1; }
        | value { $$ = term_value($1); }
-       | simple TK_OP_PLUS simple { // "wtf was I thinking about" for 300
-           $$ = term_application(term_application(term_value(value_builtin(builtin_plus())), $1), $3);
-       }
-       | simple TK_OP_MINUS simple {
-           $$ = term_application(term_application(term_value(value_builtin(builtin_minus())), $1), $3);
-       }
-       | simple TK_OP_MULT simple {
-           $$ = term_application(term_application(term_value(value_builtin(builtin_mult())), $1), $3);
-       }
-       | simple TK_OP_DIVIDE simple {
-           $$ = term_application(term_application(term_value(value_builtin(builtin_divide())), $1), $3);
-       }
-       | simple TK_OP_CEQ simple {
-           $$ = term_application(term_application(term_value(value_builtin(builtin_ceq())), $1), $3);
-       }
-       | simple TK_OP_CNEQ simple {
-           $$ = term_application(term_application(term_value(value_builtin(builtin_cneq())), $1), $3);
-       }
-       | simple TK_OP_CLT simple {
-           $$ = term_application(term_application(term_value(value_builtin(builtin_clt())), $1), $3);
-       }
-       | simple TK_OP_CLTEQ simple {
-           $$ = term_application(term_application(term_value(value_builtin(builtin_clteq())), $1), $3);
-       }
-       | simple TK_OP_CGT simple {
-           $$ = term_application(term_application(term_value(value_builtin(builtin_cgt())), $1), $3);
-       }
-       | simple TK_OP_CGTEQ simple {
-           $$ = term_application(term_application(term_value(value_builtin(builtin_cgteq())), $1), $3);
-       }
+       | binary_op
        | TK_LPAREN body TK_RPAREN { $$ = $2; };
+
+binary_op : simple TK_OP_PLUS simple { // not the prettiest code
+               $$ = term_application(term_application(term_value(value_builtin(
+               builtin_plus())), $1), $3);
+           }
+           | simple TK_OP_MINUS simple {
+               $$ = term_application(term_application(term_value(value_builtin(
+               builtin_minus())), $1), $3);
+           }
+           | simple TK_OP_MULT simple {
+               $$ = term_application(term_application(term_value(value_builtin(
+               builtin_mult())), $1), $3);
+           }
+           | simple TK_OP_DIVIDE simple {
+               $$ = term_application(term_application(term_value(value_builtin(
+               builtin_divide())), $1), $3);
+           }
+           | simple TK_OP_CEQ simple {
+               $$ = term_application(term_application(term_value(value_builtin(
+               builtin_ceq())), $1), $3);
+           }
+           | simple TK_OP_CNEQ simple {
+               $$ = term_application(term_application(term_value(value_builtin(
+               builtin_cneq())), $1), $3);
+           }
+           | simple TK_OP_CLT simple {
+               $$ = term_application(term_application(term_value(value_builtin(
+               builtin_clt())), $1), $3);
+           }
+           | simple TK_OP_CLTEQ simple {
+               $$ = term_application(term_application(term_value(value_builtin(
+               builtin_clteq())), $1), $3);
+           }
+           | simple TK_OP_CGT simple {
+               $$ = term_application(term_application(term_value(value_builtin(
+               builtin_cgt())), $1), $3);
+           }
+           | simple TK_OP_CGTEQ simple {
+               $$ = term_application(term_application(term_value(value_builtin(
+               builtin_cgteq())), $1), $3);
+           };
 
 case_of : TK_WORD_CASE body TK_WORD_OF case_statement_list TK_WORD_END {
           $$ = term_case_of($2, $4);
