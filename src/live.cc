@@ -227,7 +227,8 @@ static void draw_gui() {
         ImGui::SameLine();
         static char buf[32];
         sprintf(buf, "%.2f%%", (double)computation_progress * 100.);
-        ImGui::ProgressBar(computation_progress, ImVec2(0, 0), buf);
+        ImGui::ProgressBar(computation_progress, ImVec2(io.DisplaySize.x / 2.f
+              - padding * 1.5f - 300, 0), buf);
         if (computation_progress > 0) {
           ImGui::SameLine();
           double s = ((g_time - g_computation_time_started)
