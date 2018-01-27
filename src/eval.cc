@@ -127,8 +127,8 @@ static value_t* evaluate_application(const term_t *const term
                     <= applied_parameter->number);
                 break;
               case builtin_k::mod:
-                result = value_number((int64_t)stored_parameter->number
-                    % (int64_t)applied_parameter->number);
+                result = value_number(std::fmod(stored_parameter->number
+                      , applied_parameter->number));
                 break;
               default: // silence warning
                 break;

@@ -15,5 +15,5 @@ saw f t = (sign (sine f t)),
 saw_decay f t = (saw f t) * (decay_exp f t),
 
 # triangle f t = let p = 1 / f in
-# triangle f t = 4 * (1 / f) * ((abs ( (t mod (1 / f)) - (1 / (2 * f)))) - (1 / (4 * f))),
-
+triangle f t = 2 * f * ((abs ((t % (1 / f)) - (1 / (2 * f)))) - (1 / (4 * f))),
+triangle_decay f t = (triangle f t) * (decay_exp f t),
