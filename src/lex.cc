@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <set>
 
 std::string read_file(const std::string &filename) {
   std::ifstream ifs(filename);
@@ -41,6 +42,12 @@ std::string token_kind_to_string(int kind) {
     case TK_OP_MINUS:       return "TK_OP_MINUS";
     case TK_OP_MULT:        return "TK_OP_MULT";
     case TK_OP_DIVIDE:      return "TK_OP_DIVIDE";
+    case TK_OP_CEQ:         return "TK_OP_CEQ";
+    case TK_OP_CNEQ:        return "TK_OP_CNEQ";
+    case TK_OP_CLT:         return "TK_OP_CLT";
+    case TK_OP_CLTEQ:       return "TK_OP_CLTEQ";
+    case TK_OP_CGT:         return "TK_OP_CGT";
+    case TK_OP_CGTEQ:       return "TK_OP_CGTEQ";
     default:                return "unhandled";
   }
 }
@@ -93,6 +100,14 @@ bool lexer_t::_is_alpha(char x) {
 
 bool lexer_t::_is_digit(char x) {
   return x >= '0' && x <= '9';
+}
+
+bool lexer_t::_is_punct(char x) {
+  const std::set<char> punctuation_chars = {
+    '+', '-', '*', '/', '=', '(',
+    ')', '\\', ',', '_', '>', '<'
+  };
+  return punctuation_chars.count(_last_char) == 1;
 }
 
 double lexer_t::_lex_number_decimal() {
@@ -295,22 +310,34 @@ token_t* lexer_t::next_token() {
       _next_char();
       continue;
     }
-    const std::map<char,int> punctuation_tokens = {
-      { '+', TK_OP_PLUS },
-      { '-', TK_OP_MINUS },
-      { '*', TK_OP_MULT },
-      { '/', TK_OP_DIVIDE },
-      { '=', TK_EQUALS },
-      { '(', TK_LPAREN },
-      { ')', TK_RPAREN },
-      { '\\', TK_LAMBDA },
-      { ',', TK_EOS },
-      { '_', TK_ANY },
-    };
-    if (punctuation_tokens.count(_last_char)) {
-      int kind = punctuation_tokens.at(_last_char);
+    if (_is_punct(_last_char)) {
+      std::string punct = "";
+      punct += _last_char;
       _next_char();
-      return _token_primitive(kind);
+      while (_is_punct(_last_char)) {
+        punct += _last_char;
+        _next_char();
+      }
+      const std::map<std::string, int> punctuation_tokens = {
+        { "+",   TK_OP_PLUS },
+        { "-",   TK_OP_MINUS },
+        { "*",   TK_OP_MULT },
+        { "/",   TK_OP_DIVIDE },
+        { "=",   TK_EQUALS },
+        { "(",   TK_LPAREN },
+        { ")",   TK_RPAREN },
+        { "\\",  TK_LAMBDA },
+        { ",",   TK_EOS },
+        { "_",   TK_ANY },
+        { "==",  TK_OP_CEQ },
+        { "=/=", TK_OP_CNEQ },
+        { ">",   TK_OP_CLT },
+        { ">=",  TK_OP_CLTEQ },
+        { "<",   TK_OP_CGT },
+        { "=<",  TK_OP_CGTEQ }
+      };
+      if (punctuation_tokens.count(punct))
+        return _token_primitive(punctuation_tokens.at(punct));
     }
     if (_last_char == 0)
       return _token_primitive(TK_EOF);

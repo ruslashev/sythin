@@ -39,6 +39,12 @@ std::string builtin_kind_to_string(builtin_k kind) {
     case builtin_k::minus:  return "minus";
     case builtin_k::mult:   return "mult";
     case builtin_k::divide: return "divide";
+    case builtin_k::ceq:    return "ceq";
+    case builtin_k::cneq:   return "cneq";
+    case builtin_k::clt:    return "clt";
+    case builtin_k::clteq:  return "clteq";
+    case builtin_k::cgt:    return "cgt";
+    case builtin_k::cgteq:  return "cgteq";
     default:                return "unhandled";
   }
 }
@@ -49,6 +55,12 @@ builtin_t::~builtin_t() {
     case builtin_k::minus:
     case builtin_k::mult:
     case builtin_k::divide:
+    case builtin_k::ceq:
+    case builtin_k::cneq:
+    case builtin_k::clt:
+    case builtin_k::clteq:
+    case builtin_k::cgt:
+    case builtin_k::cgteq:
       if (binary_op.x)
         delete binary_op.x;
       break;
@@ -309,6 +321,48 @@ builtin_t* builtin_mult() {
 builtin_t* builtin_divide() {
   builtin_t *b = new builtin_t;
   b->kind = builtin_k::divide;
+  b->binary_op.x = nullptr;
+  return b;
+}
+
+builtin_t* builtin_ceq() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::ceq;
+  b->binary_op.x = nullptr;
+  return b;
+}
+
+builtin_t* builtin_cneq() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::cneq;
+  b->binary_op.x = nullptr;
+  return b;
+}
+
+builtin_t* builtin_clt() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::clt;
+  b->binary_op.x = nullptr;
+  return b;
+}
+
+builtin_t* builtin_clteq() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::clteq;
+  b->binary_op.x = nullptr;
+  return b;
+}
+
+builtin_t* builtin_cgt() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::cgt;
+  b->binary_op.x = nullptr;
+  return b;
+}
+
+builtin_t* builtin_cgteq() {
+  builtin_t *b = new builtin_t;
+  b->kind = builtin_k::cgteq;
   b->binary_op.x = nullptr;
   return b;
 }

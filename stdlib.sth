@@ -1,4 +1,8 @@
 sine f t = (sin (2 * pi * f * t)),
 
-decay f t = (exp (-5 * t)),
-sine_decay f t = (sine f t) * (decay f t),
+decay_exp f t = (exp (-5 * t)),
+decay_div f t = (1 / t),
+sine_decay f t = (sine f t) * (decay_div f t),
+
+# sign x = if x > 0 then 1 else (if x < 0 then -1 else 0 end) end,
+sign x = case x > 0 of 1 -> 1, 0 -> (case x < 0 of 1 -> -1, 0 -> 0 end) end,

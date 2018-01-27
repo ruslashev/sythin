@@ -30,7 +30,13 @@ enum class builtin_k {
   plus,
   minus,
   mult,
-  divide
+  divide,
+  ceq,
+  cneq,
+  clt,
+  clteq,
+  cgt,
+  cgteq
 };
 
 std::string builtin_kind_to_string(builtin_k kind);
@@ -134,8 +140,12 @@ builtin_t* builtin_plus();
 builtin_t* builtin_minus();
 builtin_t* builtin_mult();
 builtin_t* builtin_divide();
-// builtin_t* builtin_singulary();
-// builtin_t* builtin_binary();
+builtin_t* builtin_ceq();
+builtin_t* builtin_cneq();
+builtin_t* builtin_clt();
+builtin_t* builtin_clteq();
+builtin_t* builtin_cgt();
+builtin_t* builtin_cgteq();
 
 value_t* value_number(double number);
 value_t* value_lambda(const std::string &arg, term_t *body);

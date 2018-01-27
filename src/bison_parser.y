@@ -15,9 +15,11 @@
 %token <token> TK_WORD_OF TK_RARROW TK_NUMBER TK_LAMBDA TK_DOT TK_WORD_END
 %token <token> TK_ANY TK_BUILTIN_SIN TK_BUILTIN_EXP TK_BUILTIN_INV
 %token <token> TK_BUILTIN_PLUS TK_BUILTIN_MINUS TK_BUILTIN_MULT TK_BUILTIN_DIVIDE
-%token <token> TK_OP_PLUS TK_OP_MINUS TK_OP_MULT TK_OP_DIVIDE
+%token <token> TK_OP_PLUS TK_OP_MINUS TK_OP_MULT TK_OP_DIVIDE TK_OP_CEQ
+%token <token> TK_OP_CNEQ TK_OP_CLT TK_OP_CLTEQ TK_OP_CGT TK_OP_CGTEQ
 %left TK_OP_MINUS TK_OP_PLUS
 %left TK_OP_MULT TK_OP_DIVIDE
+%left TK_OP_CEQ TK_OP_CNEQ TK_OP_CLT TK_OP_CLTEQ TK_OP_CGT TK_OP_CGTEQ
 
 %type <term> program definition body simple identifier case_of case_value;
 %type <term_list> definition_list identifier_list simple_list;
@@ -72,7 +74,36 @@ simple_list : simple_list simple { $$->push_back($2); }
 simple : identifier { $$ = $1; }
        | case_of { $$ = $1; }
        | value { $$ = term_value($1); }
-       | simple TK_OP_MULT simple { $$ = term_application(term_application(term_value(value_builtin(builtin_mult())), $1), $3); }
+       | simple TK_OP_PLUS simple { // "wtf was I thinking about" for 300
+           $$ = term_application(term_application(term_value(value_builtin(builtin_plus())), $1), $3);
+       }
+       | simple TK_OP_MINUS simple {
+           $$ = term_application(term_application(term_value(value_builtin(builtin_minus())), $1), $3);
+       }
+       | simple TK_OP_MULT simple {
+           $$ = term_application(term_application(term_value(value_builtin(builtin_mult())), $1), $3);
+       }
+       | simple TK_OP_DIVIDE simple {
+           $$ = term_application(term_application(term_value(value_builtin(builtin_divide())), $1), $3);
+       }
+       | simple TK_OP_CEQ simple {
+           $$ = term_application(term_application(term_value(value_builtin(builtin_ceq())), $1), $3);
+       }
+       | simple TK_OP_CNEQ simple {
+           $$ = term_application(term_application(term_value(value_builtin(builtin_cneq())), $1), $3);
+       }
+       | simple TK_OP_CLT simple {
+           $$ = term_application(term_application(term_value(value_builtin(builtin_clt())), $1), $3);
+       }
+       | simple TK_OP_CLTEQ simple {
+           $$ = term_application(term_application(term_value(value_builtin(builtin_clteq())), $1), $3);
+       }
+       | simple TK_OP_CGT simple {
+           $$ = term_application(term_application(term_value(value_builtin(builtin_cgt())), $1), $3);
+       }
+       | simple TK_OP_CGTEQ simple {
+           $$ = term_application(term_application(term_value(value_builtin(builtin_cgteq())), $1), $3);
+       }
        | TK_LPAREN body TK_RPAREN { $$ = $2; };
 
 case_of : TK_WORD_CASE body TK_WORD_OF case_statement_list TK_WORD_END {

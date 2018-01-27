@@ -54,6 +54,12 @@ static value_t* evaluate_application(const term_t *const term
         case builtin_k::minus:
         case builtin_k::mult:
         case builtin_k::divide:
+        case builtin_k::ceq:
+        case builtin_k::cneq:
+        case builtin_k::clt:
+        case builtin_k::clteq:
+        case builtin_k::cgt:
+        case builtin_k::cgteq:
           if (lambda->builtin->binary_op.x == nullptr) {
             lambda->builtin->binary_op.x = term->application.parameter;
             return lambda;
@@ -71,8 +77,6 @@ static value_t* evaluate_application(const term_t *const term
                   , builtin_kind_to_string(lambda->builtin->kind).c_str()
                   , type_to_string(&applied_parameter->type).c_str());
             lambda->builtin->binary_op.x = nullptr;
-            // applied_parameter->number.value *= stored_parameter->number.value;
-            // return applied_parameter;
             value_t *result;
             switch (lambda->builtin->kind) { // :born_to_think:
               case builtin_k::plus:
@@ -90,6 +94,30 @@ static value_t* evaluate_application(const term_t *const term
               case builtin_k::divide:
                 result = value_number(stored_parameter->number
                     / applied_parameter->number);
+                break;
+              case builtin_k::ceq:
+                result = value_number((int64_t)stored_parameter->number
+                    == (int64_t)applied_parameter->number);
+                break;
+              case builtin_k::cneq:
+                result = value_number((int64_t)stored_parameter->number
+                    != (int64_t)applied_parameter->number);
+                break;
+              case builtin_k::clt:
+                result = value_number(stored_parameter->number
+                    < applied_parameter->number);
+                break;
+              case builtin_k::clteq:
+                result = value_number(stored_parameter->number
+                    <= applied_parameter->number);
+                break;
+              case builtin_k::cgt:
+                result = value_number(stored_parameter->number
+                    > applied_parameter->number);
+                break;
+              case builtin_k::cgteq:
+                result = value_number(stored_parameter->number
+                    <= applied_parameter->number);
                 break;
               default: // silence warning
                 break;
