@@ -144,6 +144,7 @@ std::vector<std::string> get_evaluatable_top_level_functions(const term_t *const
 void validate_top_level_functions(const term_t *const term
     , std::vector<message_t> *messages);
 
+// not making general builtin(kind) because some builtins are arity 1 others 2
 builtin_t* builtin_sin();
 builtin_t* builtin_exp();
 builtin_t* builtin_inv();

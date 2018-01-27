@@ -399,7 +399,6 @@ builtin_t* builtin_mod() {
 builtin_t* builtin_abs() {
   builtin_t *b = new builtin_t;
   b->kind = builtin_k::abs;
-  b->binary_op.x = nullptr;
   return b;
 }
 
