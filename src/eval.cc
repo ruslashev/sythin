@@ -80,6 +80,14 @@ static value_t* evaluate_application(const term_t *const term
           garbage->push_back(result);
           return result;
         }
+        case builtin_k::sqrt: {
+          if (applied_parameter->type.kind != type_k::number)
+            die("builtin sqrt/1: unexpected parameter of type <%s>, expected"
+                " <number>" , type_to_string(&applied_parameter->type).c_str());
+          value_t *result = value_number(std::sqrt(applied_parameter->number));
+          garbage->push_back(result);
+          return result;
+        }
         case builtin_k::plus:
         case builtin_k::minus:
         case builtin_k::mult:

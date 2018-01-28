@@ -50,6 +50,7 @@ std::string builtin_kind_to_string(builtin_k kind) {
     case builtin_k::floor:  return "floor";
     case builtin_k::round:  return "round";
     case builtin_k::ceil:   return "ceil";
+    case builtin_k::sqrt:   return "sqrt";
     default:                return "unhandled";
   }
 }
@@ -67,7 +68,6 @@ builtin_t::~builtin_t() {
     case builtin_k::cgt:
     case builtin_k::cgteq:
     case builtin_k::mod:
-    case builtin_k::abs:
       if (binary_op.x)
         delete binary_op.x;
       break;
@@ -301,122 +301,16 @@ void validate_top_level_functions(const term_t *const term
   //   messages->push_back({ message_k::error, "no main function" });
 }
 
-builtin_t* builtin_sin() {
+builtin_t* builtin_unary(builtin_k kind) {
   builtin_t *b = new builtin_t;
-  b->kind = builtin_k::sin;
+  b->kind = kind;
   return b;
 }
 
-builtin_t* builtin_exp() {
+builtin_t* builtin_binary(builtin_k kind) {
   builtin_t *b = new builtin_t;
-  b->kind = builtin_k::exp;
-  return b;
-}
-
-builtin_t* builtin_inv() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::inv;
-  return b;
-}
-
-builtin_t* builtin_plus() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::plus;
+  b->kind = kind;
   b->binary_op.x = nullptr;
-  return b;
-}
-
-builtin_t* builtin_minus() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::minus;
-  b->binary_op.x = nullptr;
-  return b;
-}
-
-builtin_t* builtin_mult() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::mult;
-  b->binary_op.x = nullptr;
-  return b;
-}
-
-builtin_t* builtin_divide() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::divide;
-  b->binary_op.x = nullptr;
-  return b;
-}
-
-builtin_t* builtin_ceq() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::ceq;
-  b->binary_op.x = nullptr;
-  return b;
-}
-
-builtin_t* builtin_cneq() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::cneq;
-  b->binary_op.x = nullptr;
-  return b;
-}
-
-builtin_t* builtin_clt() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::clt;
-  b->binary_op.x = nullptr;
-  return b;
-}
-
-builtin_t* builtin_clteq() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::clteq;
-  b->binary_op.x = nullptr;
-  return b;
-}
-
-builtin_t* builtin_cgt() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::cgt;
-  b->binary_op.x = nullptr;
-  return b;
-}
-
-builtin_t* builtin_cgteq() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::cgteq;
-  b->binary_op.x = nullptr;
-  return b;
-}
-
-builtin_t* builtin_mod() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::mod;
-  b->binary_op.x = nullptr;
-  return b;
-}
-
-builtin_t* builtin_abs() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::abs;
-  return b;
-}
-
-builtin_t* builtin_floor() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::floor;
-  return b;
-}
-
-builtin_t* builtin_round() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::round;
-  return b;
-}
-
-builtin_t* builtin_ceil() {
-  builtin_t *b = new builtin_t;
-  b->kind = builtin_k::ceil;
   return b;
 }
 

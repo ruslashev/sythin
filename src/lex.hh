@@ -38,8 +38,6 @@ class lexer_t {
   token_t* _token_primitive(int kind);
   token_t* _token_number(double number);
   token_t* _token_identifier(std::string identifier);
-
-  void _lexer_error(); // TODO
 public:
   lexer_t(const std::string &source);
   ~lexer_t();

@@ -16,6 +16,7 @@
 %token <token> TK_ANY TK_BUILTIN_SIN TK_BUILTIN_EXP TK_BUILTIN_INV
 %token <token> TK_BUILTIN_PLUS TK_BUILTIN_MINUS TK_BUILTIN_MULT TK_BUILTIN_DIVIDE
 %token <token> TK_BUILTIN_ABS TK_BUILTIN_FLOOR TK_BUILTIN_ROUND TK_BUILTIN_CEIL
+%token <token> TK_BUILTIN_SQRT
 %token <token> TK_WORD_IF TK_WORD_THEN TK_WORD_ELSE
 %token <token> TK_OP_PLUS TK_OP_MINUS TK_OP_MULT TK_OP_DIVIDE TK_OP_CEQ
 %token <token> TK_OP_CNEQ TK_OP_CLT TK_OP_CLTEQ TK_OP_CGT TK_OP_CGTEQ
@@ -84,49 +85,51 @@ simple : identifier { $$ = $1; }
        | binary_op
        | TK_LPAREN body TK_RPAREN { $$ = $2; };
 
-binary_op : simple TK_OP_PLUS simple { // not the prettiest code
+/* not the prettiest code, but separating TK_OP_* into separate rule causes
+ * shift/reduce conflicts */
+binary_op : simple TK_OP_PLUS simple {
                $$ = term_application(term_application(term_value(value_builtin(
-               builtin_plus())), $1), $3);
+               builtin_binary(builtin_k::plus))), $1), $3);
            }
            | simple TK_OP_MINUS simple {
                $$ = term_application(term_application(term_value(value_builtin(
-               builtin_minus())), $1), $3);
+               builtin_binary(builtin_k::minus))), $1), $3);
            }
            | simple TK_OP_MULT simple {
                $$ = term_application(term_application(term_value(value_builtin(
-               builtin_mult())), $1), $3);
+               builtin_binary(builtin_k::mult))), $1), $3);
            }
            | simple TK_OP_DIVIDE simple {
                $$ = term_application(term_application(term_value(value_builtin(
-               builtin_divide())), $1), $3);
+               builtin_binary(builtin_k::divide))), $1), $3);
            }
            | simple TK_OP_CEQ simple {
                $$ = term_application(term_application(term_value(value_builtin(
-               builtin_ceq())), $1), $3);
+               builtin_binary(builtin_k::ceq))), $1), $3);
            }
            | simple TK_OP_CNEQ simple {
                $$ = term_application(term_application(term_value(value_builtin(
-               builtin_cneq())), $1), $3);
+               builtin_binary(builtin_k::cneq))), $1), $3);
            }
            | simple TK_OP_CLT simple {
                $$ = term_application(term_application(term_value(value_builtin(
-               builtin_clt())), $1), $3);
+               builtin_binary(builtin_k::clt))), $1), $3);
            }
            | simple TK_OP_CLTEQ simple {
                $$ = term_application(term_application(term_value(value_builtin(
-               builtin_clteq())), $1), $3);
+               builtin_binary(builtin_k::clteq))), $1), $3);
            }
            | simple TK_OP_CGT simple {
                $$ = term_application(term_application(term_value(value_builtin(
-               builtin_cgt())), $1), $3);
+               builtin_binary(builtin_k::cgt))), $1), $3);
            }
            | simple TK_OP_CGTEQ simple {
                $$ = term_application(term_application(term_value(value_builtin(
-               builtin_cgteq())), $1), $3);
+               builtin_binary(builtin_k::cgteq))), $1), $3);
            }
            | simple TK_OP_MOD simple {
                $$ = term_application(term_application(term_value(value_builtin(
-               builtin_mod())), $1), $3);
+               builtin_binary(builtin_k::mod))), $1), $3);
            };
 
 case_of : TK_WORD_CASE body TK_WORD_OF case_statement_list TK_WORD_END {
@@ -164,15 +167,16 @@ lambda : TK_LPAREN TK_LAMBDA TK_IDENTIFIER TK_DOT body TK_RPAREN {
          $$ = value_lambda(*$3->identifier, $5);
        };
 
-builtin : TK_BUILTIN_PLUS { $$ = builtin_plus(); }
-        | TK_BUILTIN_MINUS { $$ = builtin_minus(); }
-        | TK_BUILTIN_MULT { $$ = builtin_mult(); }
-        | TK_BUILTIN_DIVIDE { $$ = builtin_divide(); }
-        | TK_BUILTIN_SIN { $$ = builtin_sin(); }
-        | TK_BUILTIN_EXP { $$ = builtin_exp(); }
-        | TK_BUILTIN_INV { $$ = builtin_inv(); }
-        | TK_BUILTIN_ABS { $$ = builtin_abs(); }
-        | TK_BUILTIN_FLOOR { $$ = builtin_floor(); }
-        | TK_BUILTIN_ROUND { $$ = builtin_round(); }
-        | TK_BUILTIN_CEIL { $$ = builtin_ceil(); };
+builtin : TK_BUILTIN_PLUS   { $$ = builtin_binary(builtin_k::plus); }
+        | TK_BUILTIN_MINUS  { $$ = builtin_binary(builtin_k::minus); }
+        | TK_BUILTIN_MULT   { $$ = builtin_binary(builtin_k::mult); }
+        | TK_BUILTIN_DIVIDE { $$ = builtin_binary(builtin_k::divide); }
+        | TK_BUILTIN_SIN    { $$ = builtin_unary(builtin_k::sin); }
+        | TK_BUILTIN_EXP    { $$ = builtin_unary(builtin_k::exp); }
+        | TK_BUILTIN_INV    { $$ = builtin_unary(builtin_k::inv); }
+        | TK_BUILTIN_ABS    { $$ = builtin_unary(builtin_k::abs); }
+        | TK_BUILTIN_FLOOR  { $$ = builtin_unary(builtin_k::floor); }
+        | TK_BUILTIN_ROUND  { $$ = builtin_unary(builtin_k::round); }
+        | TK_BUILTIN_CEIL   { $$ = builtin_unary(builtin_k::ceil); }
+        | TK_BUILTIN_SQRT   { $$ = builtin_unary(builtin_k::sqrt); };
 

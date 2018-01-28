@@ -41,7 +41,8 @@ enum class builtin_k {
   abs,
   floor,
   round,
-  ceil
+  ceil,
+  sqrt
 };
 
 std::string builtin_kind_to_string(builtin_k kind);
@@ -144,25 +145,8 @@ std::vector<std::string> get_evaluatable_top_level_functions(const term_t *const
 void validate_top_level_functions(const term_t *const term
     , std::vector<message_t> *messages);
 
-// not making general builtin(kind) because some builtins are arity 1 others 2
-builtin_t* builtin_sin();
-builtin_t* builtin_exp();
-builtin_t* builtin_inv();
-builtin_t* builtin_plus();
-builtin_t* builtin_minus();
-builtin_t* builtin_mult();
-builtin_t* builtin_divide();
-builtin_t* builtin_ceq();
-builtin_t* builtin_cneq();
-builtin_t* builtin_clt();
-builtin_t* builtin_clteq();
-builtin_t* builtin_cgt();
-builtin_t* builtin_cgteq();
-builtin_t* builtin_mod();
-builtin_t* builtin_abs();
-builtin_t* builtin_floor();
-builtin_t* builtin_round();
-builtin_t* builtin_ceil();
+builtin_t* builtin_unary(builtin_k kind);
+builtin_t* builtin_binary(builtin_k kind);
 
 value_t* value_number(double number);
 value_t* value_lambda(const std::string &arg, term_t *body);

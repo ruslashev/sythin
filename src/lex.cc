@@ -81,6 +81,15 @@ void token_t::pretty_print() {
     printf("%s\n", token_kind_to_string(kind).c_str());
 }
 
+// dirty workaround to do less work
+#define _lexer_error(...) \
+  do { \
+    printf("%s:%d:%d: lexing: ", _filename.c_str(), _line, _column); \
+    printf(__VA_ARGS__); \
+    puts(""); \
+    exit(1); \
+  } while (0)
+
 void lexer_t::_next_char() {
   if (_source_offset <= _source.length()) {
     _last_char = _source[_source_offset++];
@@ -154,7 +163,7 @@ bool lexer_t::_try_lex_number_exponent(double *exponent) {
       *exponent = sign * _lex_number_decimal();
       return true;
     } else
-      die("unexpected character in number exponent at %d:%d", _line, _column);
+      _lexer_error("unexpected character '%c' in number exponent", _last_char);
   } else
     return false;
 }
@@ -261,7 +270,8 @@ token_t* lexer_t::next_token() {
         { "else",   TK_WORD_ELSE },
         { "floor",  TK_BUILTIN_FLOOR },
         { "round",  TK_BUILTIN_ROUND },
-        { "ceil",   TK_BUILTIN_CEIL }
+        { "ceil",   TK_BUILTIN_CEIL },
+        { "sqrt",   TK_BUILTIN_SQRT }
       };
       if (reserved_identifiers.count(identifier))
         return _token_primitive(reserved_identifiers.at(identifier));
@@ -314,7 +324,7 @@ token_t* lexer_t::next_token() {
           else
             return _token_number(sign * fraction);
         } else if (explicit_sign != 0)
-          die("%d:%d: unexpected dot", _line, _column);
+          _lexer_error("unexpected dot");
         else
           return _token_primitive(TK_DOT);
       } else if (_last_char == '>' && explicit_sign == -1) {
@@ -325,7 +335,7 @@ token_t* lexer_t::next_token() {
       } else if (explicit_sign == -1) {
         return _token_primitive(TK_OP_MINUS);
       } else
-        die("unexpected character in number at %d:%d", _line, _column);
+        _lexer_error("unexpected character '%c' in number", _last_char);
     } else if (_last_char == '#') {
       _next_char();
       while (!_is_newline(_last_char))
