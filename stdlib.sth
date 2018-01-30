@@ -21,16 +21,23 @@ triangle_decay f t = (triangle f t) * (decay_exp f t),
 saw f t = 2 * (f * t - (floor (1 / 2 + f * t))),
 saw_decay f t = (saw f t) * (decay_exp f t),
 
-bell f t = .100 * (exp (inv t) / 1.000) * (sin(0.56 * 2 * pi * t))
-         + .067 * (exp (inv t) / 0.900) * (sin(0.56 * 2 * pi * t))
-         + .100 * (exp (inv t) / 0.650) * (sin(0.92 * 2 * pi * t))
-         + .180 * (exp (inv t) / 0.550) * (sin(0.92 * 2 * pi * t))
-         + .267 * (exp (inv t) / 0.325) * (sin(1.19 * 2 * pi * t))
-         + .167 * (exp (inv t) / 0.350) * (sin(1.70 * 2 * pi * t))
-         + .146 * (exp (inv t) / 0.250) * (sin(2.00 * 2 * pi * t))
-         + .133 * (exp (inv t) / 0.200) * (sin(2.74 * 2 * pi * t))
-         + .133 * (exp (inv t) / 0.150) * (sin(3.00 * 2 * pi * t))
-         + .100 * (exp (inv t) / 0.100) * (sin(3.76 * 2 * pi * t))
-         + .133 * (exp (inv t) / 0.075) * (sin(4.07 * 2 * pi * t)),
+bell f t = .100 * (exp (inv t) / 1.000) * (sin (0.56 * 2 * pi * f * t))
+         + .067 * (exp (inv t) / 0.900) * (sin (0.56 * 2 * pi * f * t))
+         + .100 * (exp (inv t) / 0.650) * (sin (0.92 * 2 * pi * f * t))
+         + .180 * (exp (inv t) / 0.550) * (sin (0.92 * 2 * pi * f * t))
+         + .267 * (exp (inv t) / 0.325) * (sin (1.19 * 2 * pi * f * t))
+         + .167 * (exp (inv t) / 0.350) * (sin (1.70 * 2 * pi * f * t))
+         + .146 * (exp (inv t) / 0.250) * (sin (2.00 * 2 * pi * f * t))
+         + .133 * (exp (inv t) / 0.200) * (sin (2.74 * 2 * pi * f * t))
+         + .133 * (exp (inv t) / 0.150) * (sin (3.00 * 2 * pi * f * t))
+         + .100 * (exp (inv t) / 0.100) * (sin (3.76 * 2 * pi * f * t))
+         + .133 * (exp (inv t) / 0.075) * (sin (4.07 * 2 * pi * f * t)),
 
 kick f t = (sin f * ((sqrt t) * 0.6 + 0.4)) * (exp -3.5 * t),
+
+pianish_aux1 f t = 0.6 * (sin (1.0 * 2 * pi * f * t)) * (exp (-0.0008 * 2 * pi * f * t))
+                 + 0.3 * (sin (2.0 * 2 * pi * f * t)) * (exp (-0.0010 * 2 * pi * f * t))
+                 + 0.1 * (sin (4.0 * 2 * pi * f * t)) * (exp (-0.0015 * 2 * pi * f * t)),
+pianish_aux2 f t = (pianish_aux1 f t) + 0.2 * ((pianish_aux1 f t) ^ 3),
+pianish_aux3 f t = (pianish_aux2 f t) * (0.9 + 0.1 * (cos (70 * t))),
+pianish f t = 2 * (pianish_aux3 f t) * (exp (-22 * t)) + (pianish_aux3 f t),
