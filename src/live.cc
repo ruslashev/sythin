@@ -15,6 +15,7 @@ void reload_file();
 void replot();
 void recalculate_freq_to_note();
 void compute();
+void compute_single();
 void save();
 
 struct passed_data_t {
@@ -48,7 +49,13 @@ const std::map<int, std::pair<char, int>> key_notes = {
   { SDLK_u, { 'A', 1 } },
   { SDLK_j, { 'B', 0 } }
 };
-enum class computing_status_t { not_computed, computing, stopped, computed };
+enum class computing_status_t {
+  not_computed,
+  computing,
+  stopped,
+  single_computed,
+  computed
+};
 // note idx: [0; 120): # of semitones above C0 (to encode absolute note to int)
 // note char: 'C', 'A'...: literal char
 
@@ -65,7 +72,8 @@ static int g_octave = 4;
 static bool playing = true, unsaved = false;
 static std::vector<std::string> g_definition_list;
 static int g_definition_list_selected_idx = -1;
-static float computed_samples[120][num_computed_samples];
+static float computed_samples[120][num_computed_samples]
+  , single_computed_samples[num_computed_samples];
 static double computation_progress = 0, g_time = 0, g_computation_time_started = 0;
 static std::thread *computation_thread = nullptr;
 static std::atomic<computing_status_t> computing_status {
@@ -112,7 +120,8 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
     for (auto &freq_pair : passed_data->notes) {
       if (!freq_pair.second.on)
         continue;
-      if (computing_status == computing_status_t::computed)
+      if (computing_status == computing_status_t::computed
+          || computing_status == computing_status_t::single_computed)
         *stream_ptr += g_volume / 100.f
           * computed_samples[freq_pair.first][freq_pair.second.c];
       else
@@ -177,6 +186,8 @@ static void draw_gui() {
     ImGui::SameLine();
     if (ImGui::SmallButton("Show test window"))
       g_show_test_window ^= 1;
+    ImGui::SameLine();
+    ImGui::Text("Octave: %d", g_octave);
     ImGui::EndMainMenuBar();
   }
 
@@ -198,6 +209,7 @@ static void draw_gui() {
   if (ImGui::Button("Save")) {
     save();
     unsaved = false;
+    computing_status = computing_status_t::not_computed;
   }
   ImGui::SameLine();
   if (ImGui::Button("Compile")) {
@@ -217,8 +229,26 @@ static void draw_gui() {
           computation_thread = new std::thread(compute);
         }
         ImGui::SameLine();
+        if (ImGui::Button("Compute single note")) {
+          if (computation_thread) {
+            computation_thread->join();
+            delete computation_thread;
+          }
+          computation_thread = new std::thread(compute_single);
+        }
         ImGui::TextWrapped("Warning: code is not computed, sounds will be "
             "interpreted on the fly");
+        break;
+      case computing_status_t::single_computed:
+        if (ImGui::Button("Compute")) {
+          if (computation_thread) {
+            computation_thread->join();
+            delete computation_thread;
+          }
+          computation_thread = new std::thread(compute);
+        }
+        ImGui::SameLine();
+        ImGui::Text("[Single note computed at 440 Hz]");
         break;
       case computing_status_t::stopped:
       case computing_status_t::computing:
@@ -333,7 +363,7 @@ static void draw_gui() {
   if (ImGui::Combo("definitions", &g_definition_list_selected_idx
       , definition_list_getter, &g_definition_list, g_definition_list.size(), 8)) {
     g_passed_data->definition = g_definition_list[g_definition_list_selected_idx];
-    replot();
+    computing_status = computing_status_t::not_computed;
   }
 
   if (g_passed_data->definition != "")
@@ -495,6 +525,41 @@ void compute() {
   }
 
   computing_status = computing_status_t::computed;
+}
+
+void compute_single() {
+  if (computing_status == computing_status_t::stopped) {
+    computing_status = computing_status_t::not_computed;
+    return;
+  }
+  computing_status = computing_status_t::computing;
+  g_computation_time_started = g_time;
+
+  computation_progress = 0;
+  const double progress_change = 1. / (double)num_computed_samples;
+  float f = note_idx_to_freq(note_details_to_note_idx('A', 4, 0));
+  for (int t = 0; t < num_computed_samples; ++t) {
+    if (computing_status == computing_status_t::stopped) {
+      computing_status = computing_status_t::not_computed;
+      return;
+    }
+    single_computed_samples[t] = evaluate_definition(g_passed_data->program
+        , g_passed_data->definition, f, (double)t / (double)sample_rate);
+    computation_progress += progress_change;
+  }
+
+  for (int i = 0; i < 120; ++i)
+    for (int t = 0; t < num_computed_samples; ++t)
+      computed_samples[i][t] = single_computed_samples[t];
+
+  computing_status = computing_status_t::single_computed;
+
+  g_frequency = f;
+  g_seconds = num_computed_seconds;
+  g_samples.clear();
+  for (int t = 0; t < num_computed_samples; ++t)
+    g_samples.push_back(single_computed_samples[t]);
+  recalculate_freq_to_note();
 }
 
 void live(const std::string &filename) {
