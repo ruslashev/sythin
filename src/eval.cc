@@ -32,6 +32,14 @@ static value_t* evaluate_application(const term_t *const term
           garbage->push_back(result);
           return result;
         }
+        case builtin_k::cos: {
+          if (applied_parameter->type.kind != type_k::number)
+            die("builtin cos/1: unexpected parameter of type <%s>, expected"
+                " <number>" , type_to_string(&applied_parameter->type).c_str());
+          value_t *result = value_number(cos(applied_parameter->number));
+          garbage->push_back(result);
+          return result;
+        }
         case builtin_k::exp: {
           if (applied_parameter->type.kind != type_k::number)
             die("builtin exp/1: unexpected parameter of type <%s>, expected"
@@ -99,6 +107,7 @@ static value_t* evaluate_application(const term_t *const term
         case builtin_k::cgt:
         case builtin_k::cgteq:
         case builtin_k::mod:
+        case builtin_k::pow:
           if (lambda->builtin->binary_op.x == nullptr) {
             lambda->builtin->binary_op.x = term->application.parameter;
             return lambda;
@@ -160,6 +169,10 @@ static value_t* evaluate_application(const term_t *const term
                 break;
               case builtin_k::mod:
                 result = value_number(std::fmod(stored_parameter->number
+                      , applied_parameter->number));
+                break;
+              case builtin_k::pow:
+                result = value_number(std::pow(stored_parameter->number
                       , applied_parameter->number));
                 break;
               default: // silence warning

@@ -25,6 +25,7 @@ struct term_t;
 
 enum class builtin_k {
   sin,
+  cos,
   exp,
   inv,
   plus,
@@ -38,6 +39,7 @@ enum class builtin_k {
   cgt,
   cgteq,
   mod,
+  pow,
   abs,
   floor,
   round,

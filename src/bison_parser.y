@@ -13,19 +13,19 @@
 
 %token <token> TK_IDENTIFIER TK_EQUALS TK_EOS TK_LPAREN TK_RPAREN TK_WORD_CASE
 %token <token> TK_WORD_OF TK_RARROW TK_NUMBER TK_LAMBDA TK_DOT TK_WORD_END
-%token <token> TK_ANY TK_BUILTIN_SIN TK_BUILTIN_EXP TK_BUILTIN_INV
+%token <token> TK_ANY TK_BUILTIN_SIN TK_BUILTIN_COS TK_BUILTIN_EXP TK_BUILTIN_INV
 %token <token> TK_BUILTIN_PLUS TK_BUILTIN_MINUS TK_BUILTIN_MULT TK_BUILTIN_DIVIDE
 %token <token> TK_BUILTIN_ABS TK_BUILTIN_FLOOR TK_BUILTIN_ROUND TK_BUILTIN_CEIL
 %token <token> TK_BUILTIN_SQRT
 %token <token> TK_WORD_IF TK_WORD_THEN TK_WORD_ELSE
 %token <token> TK_OP_PLUS TK_OP_MINUS TK_OP_MULT TK_OP_DIVIDE TK_OP_CEQ
 %token <token> TK_OP_CNEQ TK_OP_CLT TK_OP_CLTEQ TK_OP_CGT TK_OP_CGTEQ
-%token <token> TK_OP_MOD
+%token <token> TK_OP_MOD TK_OP_POW
 
 %left TK_OP_MINUS TK_OP_PLUS
 %left TK_OP_MULT TK_OP_DIVIDE
 %left TK_OP_CEQ TK_OP_CNEQ TK_OP_CLT TK_OP_CLTEQ TK_OP_CGT TK_OP_CGTEQ
-%left TK_OP_MOD
+%left TK_OP_MOD TK_OP_POW
 
 %type <term> program definition body simple identifier case_of case_value;
 %type <term> if_else binary_op;
@@ -130,6 +130,10 @@ binary_op : simple TK_OP_PLUS simple {
            | simple TK_OP_MOD simple {
                $$ = term_application(term_application(term_value(value_builtin(
                builtin_binary(builtin_k::mod))), $1), $3);
+           }
+           | simple TK_OP_POW simple {
+               $$ = term_application(term_application(term_value(value_builtin(
+               builtin_binary(builtin_k::pow))), $1), $3);
            };
 
 case_of : TK_WORD_CASE body TK_WORD_OF case_statement_list TK_WORD_END {
@@ -172,6 +176,7 @@ builtin : TK_BUILTIN_PLUS   { $$ = builtin_binary(builtin_k::plus); }
         | TK_BUILTIN_MULT   { $$ = builtin_binary(builtin_k::mult); }
         | TK_BUILTIN_DIVIDE { $$ = builtin_binary(builtin_k::divide); }
         | TK_BUILTIN_SIN    { $$ = builtin_unary(builtin_k::sin); }
+        | TK_BUILTIN_COS    { $$ = builtin_unary(builtin_k::cos); }
         | TK_BUILTIN_EXP    { $$ = builtin_unary(builtin_k::exp); }
         | TK_BUILTIN_INV    { $$ = builtin_unary(builtin_k::inv); }
         | TK_BUILTIN_ABS    { $$ = builtin_unary(builtin_k::abs); }

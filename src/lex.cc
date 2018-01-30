@@ -32,6 +32,7 @@ std::string token_kind_to_string(int kind) {
     case TK_WORD_END:       return "TK_WORD_END";
     case TK_ANY:            return "TK_ANY";
     case TK_BUILTIN_SIN:    return "TK_BUILTIN_SIN";
+    case TK_BUILTIN_COS:    return "TK_BUILTIN_COS";
     case TK_BUILTIN_EXP:    return "TK_BUILTIN_EXP";
     case TK_BUILTIN_INV:    return "TK_BUILTIN_INV";
     case TK_BUILTIN_PLUS:   return "TK_BUILTIN_PLUS";
@@ -56,6 +57,7 @@ std::string token_kind_to_string(int kind) {
     case TK_OP_CGT:         return "TK_OP_CGT";
     case TK_OP_CGTEQ:       return "TK_OP_CGTEQ";
     case TK_OP_MOD:         return "TK_OP_MOD";
+    case TK_OP_POW:         return "TK_OP_POW";
 
     case TK_EOF:            return "TK_EOF";
     default:                return "unhandled";
@@ -123,7 +125,7 @@ bool lexer_t::_is_digit(char x) {
 
 bool lexer_t::_is_punct(char x) {
   const std::set<char> punctuation_chars = {
-    '+', '-', '*', '/', '=', '(',
+    '+', '-', '*', '/', '=', '(', '^',
     ')', '\\', ',', '_', '>', '<', '%'
   };
   return punctuation_chars.count(_last_char) == 1;
@@ -255,6 +257,7 @@ token_t* lexer_t::next_token() {
       }
       const std::map<std::string, int> reserved_identifiers = {
         { "sin",    TK_BUILTIN_SIN },
+        { "cos",    TK_BUILTIN_COS },
         { "exp",    TK_BUILTIN_EXP },
         { "inv",    TK_BUILTIN_INV },
         { "plus",   TK_BUILTIN_PLUS },
@@ -360,7 +363,8 @@ token_t* lexer_t::next_token() {
         { ">=",  TK_OP_CLTEQ },
         { "<",   TK_OP_CGT },
         { "=<",  TK_OP_CGTEQ },
-        { "%",   TK_OP_MOD }
+        { "%",   TK_OP_MOD },
+        { "^",   TK_OP_POW }
       };
       std::string punct = "";
       do {

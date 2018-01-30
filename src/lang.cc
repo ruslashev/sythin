@@ -33,6 +33,7 @@ std::string type_to_string(const type_t *const type) {
 std::string builtin_kind_to_string(builtin_k kind) {
   switch (kind) {
     case builtin_k::sin:    return "sin";
+    case builtin_k::cos:    return "cos";
     case builtin_k::exp:    return "exp";
     case builtin_k::inv:    return "inv";
     case builtin_k::plus:   return "plus";
@@ -46,6 +47,7 @@ std::string builtin_kind_to_string(builtin_k kind) {
     case builtin_k::cgt:    return "cgt";
     case builtin_k::cgteq:  return "cgteq";
     case builtin_k::mod:    return "mod";
+    case builtin_k::pow:    return "pow";
     case builtin_k::abs:    return "abs";
     case builtin_k::floor:  return "floor";
     case builtin_k::round:  return "round";
@@ -68,6 +70,7 @@ builtin_t::~builtin_t() {
     case builtin_k::cgt:
     case builtin_k::cgteq:
     case builtin_k::mod:
+    case builtin_k::pow:
       if (binary_op.x)
         delete binary_op.x;
       break;
