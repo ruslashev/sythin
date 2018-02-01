@@ -43,6 +43,7 @@ std::string token_kind_to_string(int kind) {
     case TK_BUILTIN_FLOOR:  return "TK_BUILTIN_FLOOR";
     case TK_BUILTIN_ROUND:  return "TK_BUILTIN_ROUND";
     case TK_BUILTIN_CEIL:   return "TK_BUILTIN_CEIL";
+    case TK_BUILTIN_SQRT:   return "TK_BUILTIN_SQRT";
     case TK_WORD_IF:        return "TK_WORD_IF";
     case TK_WORD_THEN:      return "TK_WORD_THEN";
     case TK_WORD_ELSE:      return "TK_WORD_ELSE";

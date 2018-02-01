@@ -45,10 +45,10 @@ definition_list : definition_list definition { $$->push_back($2); }
                   $$->push_back($1);
                 };
 
-definition : TK_IDENTIFIER TK_EQUALS body TK_EOS {
+definition : TK_IDENTIFIER TK_EQUALS body TK_DOT {
              $$ = term_definition(*$1->identifier, $3);
            }
-           | TK_IDENTIFIER identifier_list TK_EQUALS body TK_EOS {
+           | TK_IDENTIFIER identifier_list TK_EQUALS body TK_DOT {
              term_t *p = $4;
              for (int i = $2->size() - 1; i >= 0; --i)
                p = term_value(value_lambda(*$2->at(i)->identifier.name, p));
