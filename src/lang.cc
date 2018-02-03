@@ -119,6 +119,7 @@ std::string term_kind_to_string(term_k kind) {
     case term_k::identifier:  return "identifier";
     case term_k::case_of:     return "case of";
     case term_k::if_else:     return "if else";
+    case term_k::let_in:      return "let in";
     case term_k::value:       return "value";
     default:                  return "unhandled";
   }
@@ -154,6 +155,12 @@ term_t::~term_t() {
       delete if_else.condition;
       delete if_else.then_expr;
       delete if_else.else_expr;
+      break;
+    case term_k::let_in:
+      for (const term_t *const definition : *let_in.definitions)
+        delete definition;
+      delete let_in.definitions;
+      delete let_in.body;
       break;
     case term_k::value:
       delete value;
@@ -228,6 +235,16 @@ void term_t::pretty_print() const {
       printf(" else ");
       if_else.else_expr->pretty_print();
       printf(" end");
+      break;
+    case term_k::let_in:
+      printf("let ");
+      for (size_t i = 0; i < let_in.definitions->size(); ++i) {
+        if (i)
+          printf(", ");
+        let_in.definitions->at(i)->pretty_print();
+      }
+      printf("in ");
+      let_in.body->pretty_print();
       break;
     case term_k::value:
       value->pretty_print();
@@ -411,6 +428,19 @@ term_t* term_if_else(term_t *condition, term_t *then_expr, term_t *else_expr) {
   t->if_else.condition->parent = t;
   t->if_else.then_expr->parent = t;
   t->if_else.else_expr->parent = t;
+  t->parent = nullptr;
+  t->scope = nullptr;
+  return t;
+}
+
+term_t* term_let_in(std::vector<term_t*> *definitions, term_t *body) {
+  term_t *t = new term_t;
+  t->kind = term_k::let_in;
+  t->let_in.definitions = definitions;
+  for (term_t *definition : *t->let_in.definitions)
+    definition->parent = t;
+  t->let_in.body = body;
+  t->let_in.body->parent = t;
   t->parent = nullptr;
   t->scope = nullptr;
   return t;

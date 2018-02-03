@@ -20,7 +20,7 @@ std::string token_kind_to_string(int kind) {
   switch (kind) {
     case TK_IDENTIFIER:     return "TK_IDENTIFIER";
     case TK_EQUALS:         return "TK_EQUALS";
-    case TK_EOS:            return "TK_EOS";
+    case TK_COMMA:          return "TK_COMMA";
     case TK_LPAREN:         return "TK_LPAREN";
     case TK_RPAREN:         return "TK_RPAREN";
     case TK_WORD_CASE:      return "TK_WORD_CASE";
@@ -47,6 +47,8 @@ std::string token_kind_to_string(int kind) {
     case TK_WORD_IF:        return "TK_WORD_IF";
     case TK_WORD_THEN:      return "TK_WORD_THEN";
     case TK_WORD_ELSE:      return "TK_WORD_ELSE";
+    case TK_WORD_LET:       return "TK_WORD_LET";
+    case TK_WORD_IN:        return "TK_WORD_IN";
     case TK_OP_PLUS:        return "TK_OP_PLUS";
     case TK_OP_MINUS:       return "TK_OP_MINUS";
     case TK_OP_MULT:        return "TK_OP_MULT";
@@ -275,7 +277,9 @@ token_t* lexer_t::next_token() {
         { "floor",  TK_BUILTIN_FLOOR },
         { "round",  TK_BUILTIN_ROUND },
         { "ceil",   TK_BUILTIN_CEIL },
-        { "sqrt",   TK_BUILTIN_SQRT }
+        { "sqrt",   TK_BUILTIN_SQRT },
+        { "let",    TK_WORD_LET },
+        { "in",     TK_WORD_IN }
       };
       if (reserved_identifiers.count(identifier))
         return _token_primitive(reserved_identifiers.at(identifier));
@@ -356,7 +360,7 @@ token_t* lexer_t::next_token() {
         { "(",   TK_LPAREN },
         { ")",   TK_RPAREN },
         { "\\",  TK_LAMBDA },
-        { ",",   TK_EOS },
+        { ",",   TK_COMMA },
         { "_",   TK_ANY },
         { "==",  TK_OP_CEQ },
         { "=/=", TK_OP_CNEQ },

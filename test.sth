@@ -3,30 +3,30 @@
 # etc. when used on large numbers
 plus_rec = (\x . (\y .
   case y of
-    0 -> x.
+    0 -> x,
     _ -> (succ ((plus_rec x) (pred y)))
   end
-)).
+)),
 mult_rec = (\x . (\y .
   case y of
-    0 -> x.
+    0 -> x,
     _ -> ((plus_rec ((mult_rec x) (pred y))) x)
   end
-)).
+)),
 
-m2n a b     = mult a b.
-m2c a b     = ((mult a) b).
-m3n a b c   = mult (mult a b) c.
-m3c a b c   = ((mult ((mult a) b)) c).
-m4n a b c d = mult (mult (mult a b) c) d.
-m4c a b c d = ((mult ((mult ((mult a) b)) c)) d).
+m2n a b     = mult a b,
+m2c a b     = ((mult a) b),
+m3n a b c   = mult (mult a b) c,
+m3c a b c   = ((mult ((mult a) b)) c),
+m4n a b c d = mult (mult (mult a b) c) d,
+m4c a b c d = ((mult ((mult ((mult a) b)) c)) d),
 
-two = 2.
-sin_alias = sin.
-double = (mult two).
-mult3 x y z = ((mult ((mult x) y)) z).
-mult2pi2 = (m3n (double pi)).
+two = 2,
+sin_alias = sin,
+double = (mult two),
+mult3 x y z = ((mult ((mult x) y)) z),
+mult2pi2 = (m3n (double pi)),
 
-simple f t = (sin_alias ((mult2pi2 f) t)).
-simple_release f t = (sin (2 * pi * f * t)) * (exp (-5 * t)).
+simple f t = (sin_alias ((mult2pi2 f) t)),
+simple_release f t = (sin (2 * pi * f * t)) * (exp (-5 * t))
 

@@ -80,6 +80,7 @@ enum class term_k {
   identifier,
   case_of,
   if_else,
+  let_in,
   value
 };
 
@@ -118,6 +119,10 @@ struct term_t {
       term_t *then_expr;
       term_t *else_expr;
     } if_else;
+    struct {
+      std::vector<term_t*> *definitions;
+      term_t *body;
+    } let_in;
     value_t *value;
   };
 
@@ -161,5 +166,6 @@ term_t* term_identifier(const std::string &name);
 term_t* term_case_of(term_t *value
     , std::vector<term_t::case_statement> *statements);
 term_t* term_if_else(term_t *condition, term_t *then_expr, term_t *else_expr);
+term_t* term_let_in(std::vector<term_t*> *terms, term_t *body);
 term_t* term_value(value_t *value);
 

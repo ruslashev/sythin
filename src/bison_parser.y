@@ -11,13 +11,13 @@
 %param { lexer_t *lexer }
 %parse-param { term_t **root }
 
-%token <token> TK_IDENTIFIER TK_EQUALS TK_EOS TK_LPAREN TK_RPAREN TK_WORD_CASE
+%token <token> TK_IDENTIFIER TK_EQUALS TK_COMMA TK_LPAREN TK_RPAREN TK_WORD_CASE
 %token <token> TK_WORD_OF TK_RARROW TK_NUMBER TK_LAMBDA TK_DOT TK_WORD_END
 %token <token> TK_ANY TK_BUILTIN_SIN TK_BUILTIN_COS TK_BUILTIN_EXP TK_BUILTIN_INV
 %token <token> TK_BUILTIN_PLUS TK_BUILTIN_MINUS TK_BUILTIN_MULT TK_BUILTIN_DIVIDE
 %token <token> TK_BUILTIN_ABS TK_BUILTIN_FLOOR TK_BUILTIN_ROUND TK_BUILTIN_CEIL
 %token <token> TK_BUILTIN_SQRT
-%token <token> TK_WORD_IF TK_WORD_THEN TK_WORD_ELSE
+%token <token> TK_WORD_IF TK_WORD_THEN TK_WORD_ELSE TK_WORD_LET TK_WORD_IN
 %token <token> TK_OP_PLUS TK_OP_MINUS TK_OP_MULT TK_OP_DIVIDE TK_OP_CEQ
 %token <token> TK_OP_CNEQ TK_OP_CLT TK_OP_CLTEQ TK_OP_CGT TK_OP_CGTEQ
 %token <token> TK_OP_MOD TK_OP_POW
@@ -28,7 +28,7 @@
 %left TK_OP_MOD TK_OP_POW
 
 %type <term> program definition body simple identifier case_of case_value;
-%type <term> if_else binary_op;
+%type <term> if_else binary_op applications;
 %type <term_list> definition_list identifier_list simple_list;
 %type <case_statement_list> case_statement_list;
 %type <case_statement> case_statement;
@@ -39,16 +39,16 @@
 
 program : definition_list { *root = term_program($1); };
 
-definition_list : definition_list definition { $$->push_back($2); }
+definition_list : definition_list TK_COMMA definition { $$->push_back($3); }
                 | definition {
                   $$ = new std::vector<term_t*>;
                   $$->push_back($1);
                 };
 
-definition : TK_IDENTIFIER TK_EQUALS body TK_DOT {
+definition : TK_IDENTIFIER TK_EQUALS body {
              $$ = term_definition(*$1->identifier, $3);
            }
-           | TK_IDENTIFIER identifier_list TK_EQUALS body TK_DOT {
+           | TK_IDENTIFIER identifier_list TK_EQUALS body {
              term_t *p = $4;
              for (int i = $2->size() - 1; i >= 0; --i)
                p = term_value(value_lambda(*$2->at(i)->identifier.name, p));
@@ -64,13 +64,18 @@ identifier_list : identifier_list identifier { $$->push_back($2); }
 
 identifier : TK_IDENTIFIER { $$ = term_identifier(*$1->identifier); };
 
-body : simple_list {
-       term_t *p = $1->at(0);
-       for (size_t i = 1; i < $1->size(); ++i)
-         p = term_application(p, $1->at(i));
-       $$ = p;
-       // delete $1
+body : applications { $$ = $1; }
+     | TK_WORD_LET definition_list TK_WORD_IN applications {
+       $$ = term_let_in($2, $4);
      };
+
+applications : simple_list {
+               term_t *p = $1->at(0);
+               for (size_t i = 1; i < $1->size(); ++i)
+                 p = term_application(p, $1->at(i));
+               $$ = p;
+               // delete $1
+             };
 
 simple_list : simple_list simple { $$->push_back($2); }
             | simple {
@@ -140,7 +145,7 @@ case_of : TK_WORD_CASE body TK_WORD_OF case_statement_list TK_WORD_END {
           $$ = term_case_of($2, $4);
         };
 
-case_statement_list : case_statement_list TK_EOS case_statement {
+case_statement_list : case_statement_list TK_COMMA case_statement {
                       $$->push_back(*$3);
                       delete $3;
                     }
