@@ -113,7 +113,8 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
   float *stream_ptr = (float*)stream;
   for (int i = 0; i < 4096; ++i) {
     *stream_ptr = 0;
-    if (passed_data->definition == "") {
+    if (passed_data->definition == ""
+        || computing_status == computing_status_t::computing) {
       ++stream_ptr;
       continue;
     }
