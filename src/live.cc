@@ -33,7 +33,7 @@ struct passed_data_t {
   }
 };
 
-const float sample_rate = 48000, num_computed_seconds = 1.2;
+const float sample_rate = 48000, num_computed_seconds = 2;
 const int num_computed_samples = sample_rate * num_computed_seconds + 0.5f;
 const std::map<int, std::pair<char, int>> key_notes = {
   { SDLK_a, { 'C', 0 } },
@@ -130,7 +130,7 @@ static void audio_callback(void *userdata, uint8_t *stream, int len) {
           * (float)evaluate_definition(passed_data->program
           , passed_data->definition, note_idx_to_freq(freq_pair.first)
           , (float)(freq_pair.second.c) / sample_rate);
-      if (freq_pair.second.c < num_computed_samples)
+      if (freq_pair.second.c < num_computed_samples - 1)
         ++freq_pair.second.c;
     }
     ++stream_ptr;
