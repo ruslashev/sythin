@@ -2,8 +2,8 @@
 #include "utils.hh"
 #include <cmath>
 
-static value_t* evaluate_term(const term_t *const term
-    , const term_t *const program, std::vector<value_t*> *garbage);
+static value_t* evaluate_term(term_t *term, const term_t *const program
+    , std::vector<value_t*> *garbage);
 
 static value_t* evaluate_application(const term_t *const term
     , const term_t *const program, std::vector<value_t*> *garbage) {
@@ -201,8 +201,8 @@ static value_t* evaluate_application(const term_t *const term
   }
 }
 
-static value_t* evaluate_term(const term_t *const term
-    , const term_t *const program, std::vector<value_t*> *garbage) {
+static value_t* evaluate_term(term_t *term, const term_t *const program
+    , std::vector<value_t*> *garbage) {
   switch (term->kind) {
     case term_k::value:
       return term->value;
@@ -259,6 +259,17 @@ static value_t* evaluate_term(const term_t *const term
         return evaluate_term(term->if_else.then_expr, program, garbage);
       break;
     }
+    case term_k::let_in: {
+      if (!term->scope)
+        term->scope = new scope_t;
+      for (const term_t *definition : *term->let_in.definitions) {
+        std::string name = *definition->definition.name;
+        term_t *body = definition->definition.body;
+        (*term->scope)[name] = evaluate_term(body, program, garbage);
+      }
+      return evaluate_term(term->let_in.body, program, garbage);
+      break;
+    }
     case term_k::application:
       return evaluate_application(term, program, garbage);
     default:
@@ -291,6 +302,11 @@ static void clear_scopes_rec(term_t *term) {
       clear_scopes_rec(term->if_else.condition);
       clear_scopes_rec(term->if_else.then_expr);
       clear_scopes_rec(term->if_else.else_expr);
+      break;
+    case term_k::let_in:
+      for (term_t *definition : *term->let_in.definitions)
+        clear_scopes_rec(definition);
+      clear_scopes_rec(term->let_in.body);
       break;
     case term_k::value:
       switch (term->value->type.kind) {

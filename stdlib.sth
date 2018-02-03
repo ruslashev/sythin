@@ -21,17 +21,18 @@ triangle_decay f t = (triangle f t) * (decay_exp f t),
 saw f t = 2 * (f * t - (floor (1 / 2 + f * t))),
 saw_decay f t = (saw f t) * (decay_exp f t),
 
-bell f t = .100 * (exp (inv t) / 1.000) * (sin (0.56 * 2 * pi * f * t))
-         + .067 * (exp (inv t) / 0.900) * (sin (0.56 * 2 * pi * f * t))
-         + .100 * (exp (inv t) / 0.650) * (sin (0.92 * 2 * pi * f * t))
-         + .180 * (exp (inv t) / 0.550) * (sin (0.92 * 2 * pi * f * t))
-         + .267 * (exp (inv t) / 0.325) * (sin (1.19 * 2 * pi * f * t))
-         + .167 * (exp (inv t) / 0.350) * (sin (1.70 * 2 * pi * f * t))
-         + .146 * (exp (inv t) / 0.250) * (sin (2.00 * 2 * pi * f * t))
-         + .133 * (exp (inv t) / 0.200) * (sin (2.74 * 2 * pi * f * t))
-         + .133 * (exp (inv t) / 0.150) * (sin (3.00 * 2 * pi * f * t))
-         + .100 * (exp (inv t) / 0.100) * (sin (3.76 * 2 * pi * f * t))
-         + .133 * (exp (inv t) / 0.075) * (sin (4.07 * 2 * pi * f * t)),
+bell f t = let w = 2 * pi * f, c = w * t, mt = (inv t) in
+      .100 * (exp mt / 1.000) * (sin (0.56 * c))
+    + .067 * (exp mt / 0.900) * (sin (0.56 * c))
+    + .100 * (exp mt / 0.650) * (sin (0.92 * c))
+    + .180 * (exp mt / 0.550) * (sin (0.92 * c))
+    + .267 * (exp mt / 0.325) * (sin (1.19 * c))
+    + .167 * (exp mt / 0.350) * (sin (1.70 * c))
+    + .146 * (exp mt / 0.250) * (sin (2.00 * c))
+    + .133 * (exp mt / 0.200) * (sin (2.74 * c))
+    + .133 * (exp mt / 0.150) * (sin (3.00 * c))
+    + .100 * (exp mt / 0.100) * (sin (3.76 * c))
+    + .133 * (exp mt / 0.075) * (sin (4.07 * c)),
 
 kick f t = (sin f * ((sqrt t) * 0.6 + 0.4)) * (exp -3.5 * t),
 

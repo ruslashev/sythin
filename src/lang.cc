@@ -243,7 +243,7 @@ void term_t::pretty_print() const {
           printf(", ");
         let_in.definitions->at(i)->pretty_print();
       }
-      printf("in ");
+      printf(" in ");
       let_in.body->pretty_print();
       break;
     case term_k::value:
