@@ -184,8 +184,8 @@ static void draw_gui() {
     ImGui::PopStyleColor(1);
     ImGui::PopItemWidth();
     ImGui::SameLine();
-    if (ImGui::SmallButton("Show test window"))
-      g_show_test_window ^= 1;
+    // if (ImGui::SmallButton("Show test window"))
+    //   g_show_test_window ^= 1;
     ImGui::SameLine();
     ImGui::Text("Octave: %d", g_octave);
     ImGui::EndMainMenuBar();
@@ -314,9 +314,11 @@ static void draw_gui() {
   ImGui::SameLine();
   ImGui::Text("%s", g_frequency_to_note.c_str());
 
-  if (ImGui::Button("Replot"))
-    replot();
-  ImGui::SameLine();
+  if (g_passed_data->definition != "") {
+    if (ImGui::Button("Replot"))
+      replot();
+    ImGui::SameLine();
+  }
   if (ImGui::Button("Frequency presets"))
     ImGui::OpenPopup("Frequency presets");
   ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x * (1.f / 4.f)
