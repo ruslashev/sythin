@@ -52,6 +52,7 @@ callgrind: $(BIN)
 .PHONY : clean
 clean:
 	@rm -f $(BIN) $(OBJS) $(DEPS) src/bison_parser.cc src/bison_parser_tokens.hh
+	@rm -fr .objs/
 
 -include $(DEPS)
 
