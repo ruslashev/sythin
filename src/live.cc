@@ -164,6 +164,10 @@ static void init() {
   ImGui::PushStyleColor(ImGuiCol_Button,        r2v(186,  85,  85));
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, r2v(183, 106, 106));
   ImGui::PushStyleColor(ImGuiCol_ButtonActive,  r2v(159,  80,  80));
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarBg,          r2v( 46,  30,  30));
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab,        r2v( 73,  40,  40));
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, r2v( 76,  47,  47));
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive,  r2v( 60,  36,  36));
 
   unsigned long long b = sizeof(computed_samples), kb = b / 1024, mb = kb / 1024;
   printf("sizeof(computed_samples): b=%llu, kb=%llu, mb=%llu\n", b, kb, mb);
