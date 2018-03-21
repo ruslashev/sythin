@@ -36,10 +36,15 @@ bell f t = let w = 2 * pi * f, c = w * t, mt = (inv t) in
 
 kick f t = (sin f * ((sqrt t) * 0.6 + 0.4)) * (exp -3.5 * t),
 
+bd f t = let ds = -7, at = 0.3, ff = triangle, decay t = (exp ds * t),
+             base f t = (ff (f / (2 * pi)) ((sqrt t) * at + (1 - at)))
+         in ((base f t) + (base (2 * f) t)) * (decay t),
+
 pianish_aux1 f t = 0.6 * (sin (1.0 * 2 * pi * f * t)) * (exp (-0.0008 * 2 * pi * f * t))
                  + 0.3 * (sin (2.0 * 2 * pi * f * t)) * (exp (-0.0010 * 2 * pi * f * t))
                  + 0.1 * (sin (4.0 * 2 * pi * f * t)) * (exp (-0.0015 * 2 * pi * f * t)),
 pianish_aux2 f t = (pianish_aux1 f t) + 0.2 * ((pianish_aux1 f t) ^ 3),
 pianish_aux3 f t = (pianish_aux2 f t) * (0.9 + 0.1 * (cos (70 * t))),
-pianish f t = 2 * (pianish_aux3 f t) * (exp (-22 * t)) + (pianish_aux3 f t)
+pianish f t = 2 * (pianish_aux3 f t) * (exp (-22 * t)) + (pianish_aux3 f t),
 
+tremolo f t = cos (2 * pi * (f * t + 40 * (sin (2 * pi * t)) / (2 * pi)))
