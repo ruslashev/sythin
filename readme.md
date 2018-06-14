@@ -1,4 +1,4 @@
-*lovq* is a programmable music synthesiser featuring pure functional DSL.
+*sythin* is a programmable music synthesiser featuring pure functional DSL.
 
 ## Screenshot
 
